@@ -14,8 +14,8 @@ model:  # Model params
 
 train:  # Training params
   default_root_dir: 'checkpoints/pretrain'      # *logging and save path of the pretrained model
-  # max_epochs: 20                              # *total number of epochs
-  max_epochs: 1                              # *total number of epochs
+  max_epochs: 20                              # *total number of epochs
+  # max_epochs: 1                              # *total number of epochs, for test purpose
   # overwrite_output_dir: True              # whether to overwrite output directory (i.e. True/False)
   # save_strategy: 'epoch'                  # save strategy of trainer
   # save_total_limit: 3                     # save total limit of trainer

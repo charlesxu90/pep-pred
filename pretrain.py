@@ -40,8 +40,8 @@ def main(args, config):
     model = SmilesBERT(tokenizer=tokenizer, **config.model).to(device)
     logger.info(f"Start training")
     trainer = pl.Trainer(accelerator=args.device, **config.train)
-    # trainer.fit(model, train_dataloader, test_dataloader, )
-    trainer.fit(model,test_dataloader, )
+    trainer.fit(model, train_dataloader, test_dataloader, )
+    # trainer.fit(model,test_dataloader, )
     trainer.save_checkpoint(os.path.join(args.output_dir, 'model.ckpt'))
     logger.info(f"Save model to {args.output_dir}")
     

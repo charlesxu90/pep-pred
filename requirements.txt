@@ -1,0 +1,10 @@
+python-Levenshtein # For distance calculation
+scikit-image
+
+# For Transpolymer
+transformers==4.20.1
+torchmetrics 
+accelerate
+xgboost
+fair-esm
+lightning

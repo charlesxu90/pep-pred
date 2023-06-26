@@ -1,0 +1,40 @@
+name: pep-pred-env
+
+channels:
+  - conda-forge
+  - defaults
+  - anaconda
+  - pytorch     # For torch series
+
+dependencies:
+  - python=3.7
+  - pip
+
+# jupyter-lab dependencies
+  - ipython           
+  - ipywidgets
+  - jupyterlab
+  - jupyterlab-git
+  - jupyterlab-nvdashboard
+  - jupyterlab-lsp
+  - matplotlib
+
+# machine learning & data analysis dependencies
+  - pytorch::pytorch
+  - nvidia::cudatoolkit=11.3  # Rely on GPU driver
+  - torchvision
+  - torchaudio
+  - tqdm
+  - numpy          
+  - scipy
+  - pandas
+  - tensorboard
+  - biopython=1.77
+  - scikit-learn
+  - numba
+  - biopandas
+  - conda-forge::rdkit
+
+  - pip:
+    - -r requirements.txt
+

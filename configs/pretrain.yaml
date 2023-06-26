@@ -1,0 +1,35 @@
+data: 
+  input_path: 'data/moses/'          # pretrain data folder, contain two files: train.csv and val.csv
+  max_len: 189                         # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
+  train_batch_size: 250
+  val_batch_size: 250
+
+model:  # Model params
+  context_length: 400             # default 400
+  width: 512
+  n_heads: 8
+  n_layers: 6
+  learning_rate: 0.00005                        # *learning rate
+  mlm_probability: 0.15                   # masked probability in mlm
+
+train:  # Training params
+  default_root_dir: 'checkpoints/pretrain'      # *logging and save path of the pretrained model
+  # max_epochs: 20                              # *total number of epochs
+  max_epochs: 1                              # *total number of epochs
+  # overwrite_output_dir: True              # whether to overwrite output directory (i.e. True/False)
+  # save_strategy: 'epoch'                  # save strategy of trainer
+  # save_total_limit: 3                     # save total limit of trainer
+  # fp16: True                              # float precision 16 (i.e. True/False)
+  # logging_strategy: 'epoch'               # logging frequency
+  # evaluation_strategy: 'epoch'            # validation frequency
+  # learning_rate: 0.00005                        # *learning rate
+  # lr_scheduler_type: 'linear'                # lr scheduler type
+  # weight_decay: 0.0                       # weight decay for AdamW
+  # warmup_ratio: 0.05                      # warm-up ratio for scheduler
+  # report_to: 'tensorboard'                # integrations to report the results and logs to
+  # dataloader_num_workers: 18              # Number of subprocesses to use for data loading
+  # sharded_ddp: False                      # option of Sharded DDP training
+
+# load_checkpoint: False
+
+

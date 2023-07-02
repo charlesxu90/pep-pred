@@ -6,7 +6,7 @@ from .base_transformer import LayerNorm, Transformer
 
 logger = logging.getLogger(__name__)
 
-class SmilesBERT(nn.Module):
+class BERT(nn.Module):
     def __init__(self,
                  tokenizer,
                  context_length: int,

@@ -1,6 +1,6 @@
 data: 
-  # input_path: 'data/moses/'          # pretrain data folder, contain two files: train.csv and val.csv
-  input_path: 'data/moses_test/'          # pretrain data folder, contain two files: train.csv and val.csv
+  input_path: 'data/moses/'          # pretrain data folder, contain two files: train.csv and val.csv
+  # input_path: 'data/moses_test/'          # pretrain data folder, contain two files: train.csv and val.csv
   max_len: 189                         # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
   train_batch_size: 512
   val_batch_size: 512
@@ -13,6 +13,6 @@ model:  # Model params
   mlm_probability: 0.15                   # masked probability in mlm
 
 train:  # Training params
-  # max_epochs: 20                              # *total number of epochs
-  max_epochs: 2                              # *total number of epochs
+  max_epochs: 20                              # *total number of epochs
+  # max_epochs: 2                              # *total number of epochs
   # learning_rate: 0.00005                        # *learning rate

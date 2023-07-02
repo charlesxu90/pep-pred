@@ -17,9 +17,9 @@ from utils.utils import time_since
 logger = logging.getLogger(__name__)
 
 
-class Trainer:
+class BertTrainer:
 
-    def __init__(self, model, output_dir, grad_norm_clip=1.0, fp16=True):
+    def __init__(self, model, output_dir, grad_norm_clip=1.0, fp16=False):
         self.model = model
         self.output_dir = output_dir
         self.grad_norm_clip = grad_norm_clip

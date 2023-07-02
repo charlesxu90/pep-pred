@@ -121,14 +121,6 @@ class SmilesTokenizer(object):
             idx_matrix[0, j] = self.char_idx[enc_smi[j]]
 
         return idx_matrix.to(torch.int64)
-    
-    # def encode_onehot(self, smiles, max_len=100):
-    #     """ Encode a smiles string into a padded torch tensor
-    #     """
-    #     idx_matrix = self.encode(smiles, max_len=max_len)
-    #     idx_matrix = torch.nn.functional.one_hot(idx_matrix, num_classes=self.get_vocab_size())
-    #     return idx_matrix
-
 
 
 class SmilesDataset(Dataset):

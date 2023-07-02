@@ -9,11 +9,11 @@ import time
 import datetime
 from pathlib import Path
 from torch.utils.data import DataLoader
-import lightning.pytorch as pl
 
 from utils.utils import parse_config
 from datasets.smiles_dataset import load_data, SmilesDataset, SmilesTokenizer
 from models.smi_bert import SmilesBERT
+from models.trainer import Trainer
 
     
 def main(args, config):    
@@ -33,18 +33,17 @@ def main(args, config):
     tokenizer = SmilesTokenizer()
     train_data = SmilesDataset(tokenizer=tokenizer, dataset=train_data, max_len=config.data.max_len)
     valid_data = SmilesDataset(tokenizer=tokenizer, dataset=valid_data, max_len=config.data.max_len)
-    train_dataloader = DataLoader(train_data, batch_size=config.data.train_batch_size, shuffle=True, num_workers=4, persistent_workers=True)
-    test_dataloader = DataLoader(valid_data, batch_size=config.data.val_batch_size, shuffle=False, num_workers=4, persistent_workers=True)
+    train_dataloader = DataLoader(train_data, batch_size=config.data.train_batch_size, shuffle=True, num_workers=4, 
+                                  pin_memory=True, persistent_workers=True)
+    test_dataloader = DataLoader(valid_data, batch_size=config.data.val_batch_size, shuffle=False, num_workers=4, 
+                                 pin_memory=True, persistent_workers=True)
 
     logger.info(f"Initialize model")
     model = SmilesBERT(tokenizer=tokenizer, **config.model).to(device)
-    logger.info(f"Start training")
-    trainer = pl.Trainer(accelerator=args.device, **config.train)
-    trainer.fit(model, train_dataloader, test_dataloader, )
-    # trainer.fit(model,test_dataloader, )
-    trainer.save_checkpoint(os.path.join(args.output_dir, 'model.ckpt'))
-    logger.info(f"Save model to {args.output_dir}")
     
+    logger.info(f"Start training")
+    trainer = Trainer(model, args.output_dir)
+    trainer.fit(train_dataloader, test_dataloader, n_epochs=config.train.max_epochs)
     logger.info(f"Training finished")
             
 

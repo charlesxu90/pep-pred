@@ -45,3 +45,15 @@ def parse_config(config_file):
     
     config = EasyDict(config)
     return config
+
+
+def save_model(model, base_dir, base_name):
+    raw_model = model.module if hasattr(model, "module") else model
+    torch.save(raw_model.state_dict(), get_path(base_dir, base_name, '.pt'))
+
+
+def load_model(model, model_weights_path, device, copy_to_cpu=True):
+    raw_model = model.module if hasattr(model, "module") else model
+    map_location = lambda storage, loc: storage if copy_to_cpu else None
+    raw_model.load_state_dict(torch.load(model_weights_path, map_location))
+    return raw_model.to(device)

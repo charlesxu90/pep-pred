@@ -2,19 +2,17 @@ import logging
 import torch
 from torch import nn, optim
 import torch.nn.functional as F
-import lightning.pytorch as pl
 from .base_transformer import LayerNorm, Transformer
 
 logger = logging.getLogger(__name__)
 
-class SmilesBERT(pl.LightningModule):
+class SmilesBERT(nn.Module):
     def __init__(self,
                  tokenizer,
                  context_length: int,
                  width: int,
                  n_heads: int,
                  n_layers: int,
-                 learning_rate: float = 1e-4,
                  mlm_probability: float = 0.15,
                  ):
         super().__init__()
@@ -33,12 +31,10 @@ class SmilesBERT(pl.LightningModule):
         self.token_embedding = nn.Embedding(self.vocab_size, width)
         self.positional_embedding = nn.Parameter(torch.empty(self.context_length, width))
         self.ln_final = LayerNorm(width)
-        self.learning_rate = learning_rate
         self.mlm_probability = mlm_probability
         self.decoder = nn.Linear(width, self.vocab_size)  # decodes into vocab_size
 
         self.initialize_parameters()
-        self.save_hyperparameters()
 
     def initialize_parameters(self):
         nn.init.normal_(self.token_embedding.weight, std=0.02)
@@ -57,7 +53,7 @@ class SmilesBERT(pl.LightningModule):
     def dtype(self):
         return self.token_embedding.weight.dtype
 
-    def forward(self, inputs):
+    def embed(self, inputs):
         x = self.token_embedding(inputs).type(self.dtype)  # [batch_size, n_ctx, d_model]
         # logger.debug(f'x.shape: {x.shape}')
         x = x + self.positional_embedding.type(self.dtype)
@@ -68,7 +64,6 @@ class SmilesBERT(pl.LightningModule):
         x = self.ln_final(x).type(self.dtype)   # x.shape = [batch_size, n_ctx, transformer.width]
         
         return x
-    
         
     def mask(self, input_ids, targets):
         probability_matrix = torch.full(targets.shape, self.mlm_probability)  # mask with 0.15 probability
@@ -85,7 +80,7 @@ class SmilesBERT(pl.LightningModule):
 
         # 10% of the time, we replace masked input tokens with random word
         indices_random = torch.bernoulli(torch.full(input_ids.shape, 0.5)).bool() & masked_indices & ~indices_replaced
-        random_words = torch.randint(self.vocab_size, input_ids.shape, dtype=torch.long).to(self.device)
+        random_words = torch.randint(self.vocab_size, input_ids.shape, dtype=torch.long).to(input_ids.device)
         input_ids[indices_random] = random_words[indices_random]
         # The rest of the time (10%), we keep the masked input tokens unchanged   
         
@@ -95,7 +90,7 @@ class SmilesBERT(pl.LightningModule):
         targets = inputs.clone()
         inputs, targets, masked_indices = self.mask(inputs, targets=targets)  # mlm
 
-        outputs = self.forward(inputs)
+        outputs = self.embed(inputs)
         outputs = self.decoder(outputs)
 
         targets_masked = targets[masked_indices]
@@ -111,19 +106,13 @@ class SmilesBERT(pl.LightningModule):
         batch = nn.functional.pad(batch, (0, self.context_length - batch.shape[1]), value=self.tokenizer.pad_token_id)  # padding inputs length to n_ctx
         return batch
 
-    
-    def training_step(self, batch, batch_idx):
+    def forward(self, batch):
         batch = self.process_batch(batch)
         masked_lm_loss = self.mlm(batch)
-        return {'loss': masked_lm_loss,}
+        return masked_lm_loss
     
-    def validation_step(self, batch, batch_idx):
-        batch = self.process_batch(batch)
-        masked_lm_loss = self.mlm(batch)
-        return {"val_loss": masked_lm_loss}
-
-    def configure_optimizers(self):
-        optimizer = optim.AdamW(params=self.parameters(), lr=self.learning_rate)
+    def configure_optimizers(self, learning_rate=1e-4):
+        optimizer = optim.AdamW(params=self.parameters(), lr=learning_rate)
         # lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, ) # use simple optimzer first
         return optimizer
 

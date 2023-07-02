@@ -10,11 +10,15 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-def load_data(data_path):
-    train_data = pd.read_csv(get_path(data_path, 'train.csv'))['SMILES'].values
-    valid_data = pd.read_csv(get_path(data_path, 'test.csv'))['SMILES'].values
+def load_data(data_path, col_name='SMILES'):
+    if col_name == 'SMILES' or col_name == 'helm':
+        train_data = pd.read_csv(get_path(data_path, 'train.csv'))[col_name].values
+        valid_data = pd.read_csv(get_path(data_path, 'test.csv'))[col_name].values
+    else:
+        col_names = col_name.split(',')
+        train_data = pd.read_csv(get_path(data_path, 'train.csv'))[col_names].values
+        valid_data = pd.read_csv(get_path(data_path, 'test.csv'))[col_names].values
     return train_data, valid_data
-
 
 class SmilesTokenizer(object):
     PAD = ' '

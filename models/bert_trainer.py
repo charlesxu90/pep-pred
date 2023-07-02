@@ -19,11 +19,12 @@ logger = logging.getLogger(__name__)
 
 class Trainer:
 
-    def __init__(self, model, output_dir, grad_norm_clip=1.0):
+    def __init__(self, model, output_dir, grad_norm_clip=1.0, fp16=True):
         self.model = model
         self.output_dir = output_dir
         self.grad_norm_clip = grad_norm_clip
         self.writer = SummaryWriter(self.output_dir)
+        self.fp16 = fp16
 
         self.device = 'cpu'
         if torch.cuda.is_available():
@@ -31,7 +32,7 @@ class Trainer:
             self.model = torch.nn.DataParallel(self.model).to(self.device)
 
     def fit(self, train_loader, test_loader=None, n_epochs=10, save_ckpt=True):
-        model = self.model
+        model = self.model.half() if self.fp16 else self.model 
 
         raw_model = model.module if hasattr(self.model, "module") else model
         optimizer = raw_model.configure_optimizers()  # TODO: support LR scheduler and warmup
@@ -45,7 +46,7 @@ class Trainer:
             losses = []
             pbar = tqdm(enumerate(loader), total=len(loader)) if is_train else enumerate(loader)
             for it, x in pbar:
-                x = x.to(self.device)
+                x = x.to(self.device).half() if self.fp16 else x.to(self.device)
 
                 with torch.set_grad_enabled(is_train):
                     loss = model.forward(x)

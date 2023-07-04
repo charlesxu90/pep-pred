@@ -6,7 +6,7 @@ data:
   val_batch_size: 512
 
 model:  # Model params
-  context_length: 400             # default 400
+  context_length: 600             # default 600
   width: 512
   n_heads: 8
   n_layers: 6

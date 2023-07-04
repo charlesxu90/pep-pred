@@ -4,8 +4,6 @@ import logging
 import torch
 import numpy as np
 import random
-import time
-import datetime
 from pathlib import Path
 from torch.utils.data import DataLoader
 
@@ -41,7 +39,6 @@ def main(args, config):
     model = BERT(tokenizer=tokenizer, **config.model).to(device)
     if args.ckpt is not None:
         model = load_model(model, args.ckpt, device)
-        model.load_state_dict(torch.load(args.ckpt))
     
     logger.info(f"Start training")
     trainer = BertTrainer(model, args.output_dir)

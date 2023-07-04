@@ -10,7 +10,6 @@ from tqdm import tqdm
 import numpy as np
 import torch
 from torch import nn
-from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from utils.utils import save_model
 from utils.utils import time_since

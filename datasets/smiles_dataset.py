@@ -141,3 +141,18 @@ class SmilesDataset(Dataset):
         smiles = self.dataset[idx]
         input_ids = self.tokenizer.encode(smiles, max_len=self.max_len)
         return input_ids
+    
+
+class CrossDataset(Dataset):
+    def __init__(self, dataset):
+        self.dataset = dataset
+
+    def __len__(self):
+        self.len = len(self.dataset)
+        return self.len
+
+    def __getitem__(self, idx):
+        item = self.dataset[idx]
+        [item1, item2] = item
+        # logger.debug(f'CrossDataset: {item1}, {item2}')
+        return item1, item2

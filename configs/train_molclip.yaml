@@ -2,7 +2,7 @@ data:
   input_path: 'data/PeptideAtlas/'          # pretrain data folder, contain two files: train.csv and val.csv
   col_name: 'smi,aa_seq'              # column name of SMILES and AA sequence
   max_len: 600                         # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
-  batch_size: 180
+  batch_size: 120
 
 model:  # Model params
   smi_bert:

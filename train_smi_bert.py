@@ -7,7 +7,7 @@ import random
 from pathlib import Path
 from torch.utils.data import DataLoader
 
-from utils.utils import parse_config, load_model
+from utils.utils import parse_config, load_model, log_GPU_info
 from datasets.smiles_dataset import load_data, SmilesDataset, SmilesTokenizer
 from models.bert import BERT
 from models.bert_trainer import BertTrainer
@@ -24,6 +24,8 @@ def main(args, config):
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(format='%(asctime)s - %(message)s', level=log_level)
     logger = logging.getLogger(__name__)
+    
+    log_GPU_info(logger)
     
     logger.info(f"Create dataset")
     train_data, valid_data = load_data(config.data.input_path)

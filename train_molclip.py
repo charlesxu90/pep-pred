@@ -10,7 +10,7 @@ import datetime
 from pathlib import Path
 from torch.utils.data import DataLoader
 
-from utils.utils import parse_config
+from utils.utils import parse_config, log_GPU_info
 from datasets.smiles_dataset import load_data, CrossDataset, SmilesTokenizer
 from models.molclip import MolCLIP
 from models.molclip_trainer import CrossTrainer
@@ -27,6 +27,8 @@ def main(args, config):
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(format='%(asctime)s - %(message)s', level=log_level)
     logger = logging.getLogger(__name__)
+
+    log_GPU_info(logger)
     
     logger.info(f"Create dataset")
     train_data, valid_data = load_data(config.data.input_path, col_name=config.data.col_name,)

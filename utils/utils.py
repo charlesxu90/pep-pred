@@ -57,3 +57,9 @@ def load_model(model, model_weights_path, device, copy_to_cpu=True):
     map_location = lambda storage, loc: storage if copy_to_cpu else None
     raw_model.load_state_dict(torch.load(model_weights_path, map_location))
     return raw_model.to(device)
+
+def log_GPU_info(logger):
+    logger.info('GPU INFO:')
+    logger.info(f'Available devices: {torch.cuda.device_count()}')
+    logger.info(f'GPT name: {torch.cuda.get_device_name(0)}')
+    logger.info(f'GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1024 ** 3} GB')

@@ -2,7 +2,6 @@ import argparse
 import os
 import logging
 import torch
-import ruamel.yaml as yaml
 import numpy as np
 import random
 import time
@@ -62,5 +61,4 @@ if __name__ == '__main__':
 
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)    
     config = parse_config(args.config)
-    # yaml.dump(config, open(os.path.join(args.output_dir, 'config.yaml'), 'w'))
     main(args, config)

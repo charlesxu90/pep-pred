@@ -53,7 +53,7 @@ class BERT(nn.Module):
     def dtype(self):
         return self.token_embedding.weight.dtype
 
-    def embed(self, inputs):
+    def embed(self, inputs):  # inputs must be processed by self.process_inputs
         x = self.token_embedding(inputs).type(self.dtype)  # [batch_size, n_ctx, d_model]
         # logger.debug(f'x.shape: {x.shape}')
         x = x + self.positional_embedding.type(self.dtype)
@@ -86,12 +86,12 @@ class BERT(nn.Module):
         
         return input_ids, targets, masked_indices
 
-    def mlm(self, inputs):
+    def mlm(self, inputs):  # inputs must be processed by self.process_inputs
         targets = inputs.clone()
-        inputs, targets, masked_indices = self.mask(inputs, targets=targets)  # mlm
+        mask_inputs, targets, masked_indices = self.mask(inputs, targets=targets)  # mlm
 
-        outputs = self.embed(inputs)
-        outputs = self.decoder(outputs)
+        out_embd = self.embed(mask_inputs)
+        outputs = self.decoder(out_embd)
 
         targets_masked = targets[masked_indices]
         outputs_masked = outputs[masked_indices].view(-1, self.vocab_size)
@@ -99,20 +99,20 @@ class BERT(nn.Module):
         masked_lm_loss = F.cross_entropy(outputs_masked, targets_masked)
         return masked_lm_loss
     
-    def process_batch(self, batch):
+    def process_inputs(self, inputs):
         """ remove useless dimension, and fill to the context_length
         """
-        batch = batch.squeeze(1)
-        batch = nn.functional.pad(batch, (0, self.context_length - batch.shape[1]), value=self.tokenizer.pad_token_id)  # padding inputs length to n_ctx
-        return batch
+        inputs = inputs.squeeze(1)
+        inputs = nn.functional.pad(inputs, (0, self.context_length - inputs.shape[1]), value=self.tokenizer.pad_token_id)  # padding inputs length to n_ctx
+        return inputs
 
-    def forward(self, batch):
-        batch = self.process_batch(batch)
-        masked_lm_loss = self.mlm(batch)
+    def forward(self, inputs):
+        inputs = self.process_inputs(inputs)
+        masked_lm_loss = self.mlm(inputs)
         return masked_lm_loss
     
     def configure_optimizers(self, learning_rate=1e-4):
         optimizer = optim.AdamW(params=self.parameters(), lr=learning_rate)
-        # lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, ) # use simple optimzer first
+        # lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, ) # TODO: add LR scheduler
         return optimizer
 

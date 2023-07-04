@@ -9,6 +9,7 @@ import time
 from tqdm import tqdm
 import numpy as np
 import torch
+from torch import nn
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from utils.utils import save_model
@@ -30,7 +31,7 @@ class BertTrainer:
         if torch.cuda.is_available():
             self.device = torch.cuda.current_device()
             self.model = torch.nn.DataParallel(self.model).to(self.device)
-
+    
     def fit(self, train_loader, test_loader=None, n_epochs=10, save_ckpt=True):
         model = self.model.half() if self.fp16 else self.model 
 

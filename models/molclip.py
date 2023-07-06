@@ -53,14 +53,14 @@ class MolCLIP(nn.Module):
         loss_sac = (loss_s2a + loss_a2s) / 2
 
         #======= Smiles MLM loss =======#
-        # smi_tokens_mlm = smi_tokens.clone()
-        # loss_mlm = self.smi_encoder.mlm(smi_tokens_mlm)
+        smi_tokens_mlm = smi_tokens.clone()
+        loss_mlm = self.smi_encoder.mlm(smi_tokens_mlm)
 
         #======= Smiles-AA match loss =======#
         # TODO: Implement this later as fusion needed
         # loss_sam = F.cross_entropy(smi_feat, aa_feat.argmax(dim=-1))
 
-        loss = loss_sac # + loss_mlm
+        loss = loss_sac + loss_mlm
 
         return loss
     

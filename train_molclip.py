@@ -39,7 +39,6 @@ def main(args, config):
     test_dataloader = DataLoader(valid_data, batch_size=config.data.batch_size, shuffle=False, num_workers=4, 
                                  pin_memory=True, persistent_workers=True)
 
-
     logger.info(f"Initialize model")
     tokenizer = SmilesTokenizer()
     model = MolCLIP(tokenizer=tokenizer, device=device, config=config.model)

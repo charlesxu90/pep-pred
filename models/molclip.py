@@ -42,22 +42,25 @@ class MolCLIP(nn.Module):
 
         #======= Smiles-AA contrastive loss =======#
         sim_s2a = torch.mm(smi_feat, aa_feat.T) / self.temp
-        sim_a2s = torch.mm(aa_feat, smi_feat.T) / self.temp
+        sim_a2s = sim_s2a.T
 
-        loss_s2a = -torch.sum(F.log_softmax(sim_s2a, dim=-1) * F.softmax(sim_a2s, dim=-1), dim=-1).mean()
-        loss_a2s = -torch.sum(F.log_softmax(sim_a2s, dim=-1) * F.softmax(sim_s2a, dim=-1), dim=-1).mean()
+        targets = torch.zeros(sim_s2a.size()).to(self.device)
+        targets.fill_diagonal_(1)
+
+        loss_s2a = -torch.sum(F.log_softmax(sim_s2a, dim=-1) * targets, dim=-1).mean()
+        loss_a2s = -torch.sum(F.log_softmax(sim_a2s, dim=-1) * targets, dim=-1).mean()
 
         loss_sac = (loss_s2a + loss_a2s) / 2
 
         #======= Smiles MLM loss =======#
-        smi_tokens_mlm = smi_tokens.clone()
-        loss_mlm = self.smi_encoder.mlm(smi_tokens_mlm)
+        # smi_tokens_mlm = smi_tokens.clone()
+        # loss_mlm = self.smi_encoder.mlm(smi_tokens_mlm)
 
         #======= Smiles-AA match loss =======#
         # TODO: Implement this later as fusion needed
         # loss_sam = F.cross_entropy(smi_feat, aa_feat.argmax(dim=-1))
 
-        loss = loss_sac + loss_mlm
+        loss = loss_sac # + loss_mlm
 
         return loss
     

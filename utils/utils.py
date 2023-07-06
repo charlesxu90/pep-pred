@@ -61,5 +61,5 @@ def load_model(model, model_weights_path, device, copy_to_cpu=True):
 def log_GPU_info(logger):
     logger.info('GPU INFO:')
     logger.info(f'Available devices: {torch.cuda.device_count()}')
-    logger.info(f'GPT name: {torch.cuda.get_device_name(0)}')
+    logger.info(f'GPU name: {torch.cuda.get_device_name(0)}')
     logger.info(f'GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1024 ** 3} GB')

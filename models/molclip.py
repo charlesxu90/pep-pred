@@ -42,7 +42,7 @@ class MolCLIP(nn.Module):
 
         #======= Smiles-AA contrastive loss =======#
         sim_s2a = torch.mm(smi_feat, aa_feat.T) / self.temp
-        sim_a2s = sim_s2a.T
+        sim_a2s = torch.mm(aa_feat, smi_feat.T) / self.temp
 
         targets = torch.zeros(sim_s2a.size()).to(self.device)
         targets.fill_diagonal_(1)

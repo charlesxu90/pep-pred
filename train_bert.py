@@ -37,9 +37,9 @@ def main(args, config):
 
     logger.info(f"Initialize model")
     if config.data.type == 'smiles':
-        tokenizer = SmilesTokenizer()
+        tokenizer = SmilesTokenizer(max_len=config.data.max_len)
     elif config.data.type == 'aa_seq':
-        tokenizer = AATokenizer()
+        tokenizer = AATokenizer(max_len=config.data.max_len)
     else:
         raise Exception(f"Unknown data type: {config.data.type}")
     

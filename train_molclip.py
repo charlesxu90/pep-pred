@@ -39,8 +39,7 @@ def main(args, config):
                                  pin_memory=True, persistent_workers=True)
 
     logger.info(f"Initialize model")
-    tokenizer = SmilesTokenizer()
-    model = MolCLIP(tokenizer=tokenizer, device=device, config=config.model)
+    model = MolCLIP(device=device, config=config.model, esm=args.esm)
     
     logger.info(f"Start training")
     trainer = CrossTrainer(model, args.output_dir)
@@ -55,6 +54,7 @@ if __name__ == '__main__':
     parser.add_argument('--device', default='cuda')
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--esm', action='store_true')
     args = parser.parse_args()
 
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)    

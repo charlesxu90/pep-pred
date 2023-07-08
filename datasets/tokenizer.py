@@ -11,9 +11,10 @@ class Tokenizer(ABC):
     END = '\n'
     MASK = '!'
 
-    def __init__(self) -> None:
+    def __init__(self, max_len=100) -> None:
         self.char_idx = {}
         self.idx_char = {}
+        self.max_len = max_len
         pass
 
     def preprocess_str(self, seq):
@@ -22,13 +23,14 @@ class Tokenizer(ABC):
     def postprocess_str(self, seq):
         return seq
 
-    def tokenize(self,  seqs, max_len=100):
+    def tokenize(self,  seqs):
+        # logger.debug(f'max_len: {self.max_len}')
         batch_size = len(seqs)
         seqs = [self.BEGIN + seq + self.END for seq in seqs]
-        idx_matrix = torch.zeros((batch_size, max_len))
+        idx_matrix = torch.zeros((batch_size, self.max_len))
         for i, seq in enumerate(seqs):
             enc_seq = self.BEGIN + self.preprocess_str(seq) + self.END
-            for j in range(max_len):
+            for j in range(self.max_len):
                 if j >= len(enc_seq):
                     break
                 idx_matrix[i, j] = self.char_idx[enc_seq[j]]
@@ -75,7 +77,7 @@ class Tokenizer(ABC):
 
 class SmilesTokenizer(Tokenizer):
 
-    def __init__(self) -> None:
+    def __init__(self, max_len=189) -> None:
         self.forbidden_symbols = {'Ag', 'Al', 'Am', 'Ar', 'At', 'Au', 'D', 'E', 'Fe', 'G', 'K', 'L', 'M', 'Ra', 'Re',
                                   'Rf', 'Rg', 'Rh', 'Ru', 'T', 'U', 'V', 'W', 'Xe',
                                   'Y', 'Zr', 'a', 'd', 'f', 'g', 'h', 'k', 'm', 'si', 't', 'te', 'u', 'v', 'y'}
@@ -89,8 +91,8 @@ class SmilesTokenizer(Tokenizer):
                          }
 
         self.idx_char = {v: k for k, v in self.char_idx.items()}
-
         self.encode_dict = {"Br": 'Y', "Cl": 'X', "Si": 'A', 'Se': 'Z', '@@': 'R', 'se': 'E'}
+        self.max_len = max_len
 
     def allowed(self, smiles) -> bool:
         for symbol in self.forbidden_symbols:
@@ -120,8 +122,9 @@ class AATokenizer(Tokenizer):
     """
     BEGIN = 'B'
 
-    def __init__(self) -> None:
+    def __init__(self, max_len=40) -> None:
         self.char_idx = {self.PAD: 0, self.BEGIN: 1, self.END: 2, 'A': 3, 'R': 4, 'N': 5, 'D': 6, 'C': 7, 'E': 8,
                          'Q': 9, 'G': 10, 'H': 11, 'I': 12, 'L': 13, 'K': 14, 'M': 15, 'F': 16, 'P': 17, 'S': 18,
                          'T': 19, 'W': 20, 'Y': 21, 'V': 22, 'X': 23, self.MASK: 24}  # X for unknown AA
         self.idx_char = {v: k for k, v in self.char_idx.items()}
+        self.max_len = max_len

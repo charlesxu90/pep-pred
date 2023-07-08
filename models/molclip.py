@@ -3,26 +3,34 @@ import torch
 from torch import nn, optim
 import torch.nn.functional as F
 
-from .base_transformer import LayerNorm, Transformer
 from .bert import BERT
+from datasets.tokenizer import SmilesTokenizer, AATokenizer
 import esm
 
 torch.autograd.set_detect_anomaly(True)
 
 class MolCLIP(nn.Module):
     def __init__(self, 
-                 tokenizer, 
                  device,
-                 config
+                 config,
+                 esm=False,
                  ):
         super().__init__()
         self.temp = nn.Parameter(torch.tensor(1.0)) * config.temp_scale
-        self.smi_encoder = BERT(tokenizer=tokenizer,**config.smi_bert)
-        self.aa_encoder, self.aa_tokenizer, self.aa_alphabet = self.load_esm2_model()
-        self.device = device
-
+        
+        self.smi_encoder = BERT(tokenizer=SmilesTokenizer(max_len=config.smi_max_len),**config.smi_bert)
         self.smi_proj = nn.Linear(config.smi_bert.width, config.proj_dim)
-        self.aa_proj = nn.Linear(1280, config.proj_dim)
+
+        if esm:
+            self.aa_encoder, self.aa_tokenizer, self.aa_alphabet = self.load_esm2_model()
+            self.aa_proj = nn.Linear(1280, config.proj_dim)
+        else:
+            self.aa_encoder = BERT(tokenizer=AATokenizer(max_len=config.aa_max_len), **config.aa_bert)
+            self.aa_proj = nn.Linear(config.aa_bert.width, config.proj_dim)
+        
+        self.esm = esm
+        self.device = device
+        self.cls_token_embd = config.cls_token_embd
     
     @staticmethod
     def load_esm2_model():  # Load ESM-2 model
@@ -34,7 +42,10 @@ class MolCLIP(nn.Module):
     def forward(self, x, y):
         smiles, aa_seqs = x, y
 
-        aa_embd = self.get_esm_embd(aa_seqs)
+        if self.esm:
+            aa_embd = self.get_esm_embd(aa_seqs)
+        else:
+            aa_embd, aa_tokens = self.get_aa_embd(aa_seqs)
         smi_embd, smi_tokens = self.get_smi_embd(smiles)
 
         smi_feat = F.normalize(self.smi_proj(smi_embd), dim=-1)
@@ -52,9 +63,11 @@ class MolCLIP(nn.Module):
 
         loss_sac = (loss_s2a + loss_a2s) / 2
 
-        #======= Smiles MLM loss =======#
-        smi_tokens_mlm = smi_tokens.clone()
-        loss_mlm = self.smi_encoder.mlm(smi_tokens_mlm)
+        #======= MLM loss =======#
+        if self.esm:
+            loss_mlm = self.smi_encoder.mlm(smi_tokens.clone())
+        else:
+            loss_mlm = self.smi_encoder.mlm(smi_tokens.clone()) + self.aa_encoder.mlm(aa_tokens.clone())
 
         #======= Smiles-AA match loss =======#
         # TODO: Implement this later as fusion needed
@@ -81,16 +94,33 @@ class MolCLIP(nn.Module):
         
         return torch.stack(sequence_rep)
     
+    def get_aa_embd(self, aa_seqs):
+        aa_tokens = self.aa_encoder.tokenize_inputs(aa_seqs).to(self.device)
+        batch_lens = (aa_tokens != self.aa_encoder.tokenizer.pad_token_id).sum(1)
+        aa_embd = self.aa_encoder.embed(aa_tokens)
+        if self.cls_token_embd:
+            aa_embd = aa_embd[:, 0, :]
+            return aa_embd, aa_tokens
+        else:
+            aa_reps = []
+            for i, tokens_len in enumerate(batch_lens):
+                aa_reps.append(aa_embd[i, 1 : tokens_len - 1].mean(0))
+            
+            return torch.stack(aa_reps), aa_tokens
+    
     def get_smi_embd(self, smiles):
-        smi_tokens_raw = self.smi_encoder.tokenizer.batch_encode(smiles).to(self.device)
-        smi_tokens = self.smi_encoder.process_inputs(smi_tokens_raw)
+        smi_tokens = self.smi_encoder.tokenize_inputs(smiles).to(self.device)
         batch_lens = (smi_tokens != self.smi_encoder.tokenizer.pad_token_id).sum(1)
         smi_embd = self.smi_encoder.embed(smi_tokens)
-        smi_reps = []
-        for i, tokens_len in enumerate(batch_lens):
-            smi_reps.append(smi_embd[i, 1 : tokens_len - 1].mean(0))
-        
-        return torch.stack(smi_reps), smi_tokens
+        if self.cls_token_embd:
+            smi_embd = smi_embd[:, 0, :]
+            return smi_embd, smi_tokens
+        else:
+            smi_reps = []
+            for i, tokens_len in enumerate(batch_lens):
+                smi_reps.append(smi_embd[i, 1 : tokens_len - 1].mean(0))
+            
+            return torch.stack(smi_reps), smi_tokens
 
     
     def configure_optimizers(self, learning_rate=1e-4):

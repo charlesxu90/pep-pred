@@ -2,7 +2,7 @@ data:
   input_path: 'data/PeptideAtlas/'          # pretrain data folder, contain two files: train.csv and val.csv
   col_name: 'smi,aa_seq'              # column name of SMILES and AA sequence
   max_len: 600                         # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
-  batch_size: 20
+  batch_size: 36
 
 model:  # Model params
   smi_bert:
@@ -12,9 +12,19 @@ model:  # Model params
     n_layers: 6
     mlm_probability: 0.15                   # masked probability in mlm
   
-  proj_dim: 512
+  aa_bert:
+    context_length: 256             # default 400
+    width: 256
+    n_heads: 8
+    n_layers: 6
+    mlm_probability: 0.15                   # masked probability in mlm
+  
+  smi_max_len: 189
+  aa_max_len: 40
+  cls_token_embd: true
+  proj_dim: 256
   temp_scale: 0.07
 
 train:  # Training params
   max_epochs: 5                              # *total number of epochs
-  # learning_rate: 0.00005                        # *learning rate
+  learning_rate: 0.00005                        # *learning rate

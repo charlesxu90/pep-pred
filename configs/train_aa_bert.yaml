@@ -11,8 +11,8 @@ model:  # Model params
   width: 256
   n_heads: 8
   n_layers: 6
-  mlm_probability: 0.15                   # masked probability in mlm
+  mlm_probability: 0.15           # masked probability in mlm
 
 train:  # Training params
-  max_epochs: 20                              # *total number of epochs
-  # learning_rate: 0.00005                        # *learning rate
+  max_epochs: 20                  # *total number of epochs
+  learning_rate: 0.00005          # *learning rate

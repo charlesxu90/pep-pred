@@ -1,0 +1,18 @@
+data: 
+  type: 'aa_seq'                       # data type, 'smiles' or 'helm' or 'aa_seq'
+  input_path: 'data/PeptideAtlas/'          # pretrain data folder, contain two files: train.csv and val.csv
+  col_name: 'aa_seq'                  
+  max_len: 40                         # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
+  batch_size: 250
+  # batch_size: 1024
+
+model:  # Model params
+  context_length: 256             # default 600
+  width: 256
+  n_heads: 8
+  n_layers: 6
+  mlm_probability: 0.15           # masked probability in mlm
+
+train:  # Training params
+  max_epochs: 20                  # *total number of epochs
+  learning_rate: 0.00005          # *learning rate

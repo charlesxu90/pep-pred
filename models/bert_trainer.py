@@ -19,12 +19,14 @@ logger = logging.getLogger(__name__)
 
 class BertTrainer:
 
-    def __init__(self, model, output_dir, grad_norm_clip=1.0, fp16=False, device='cuda'):
+    def __init__(self, model, output_dir, grad_norm_clip=1.0, fp16=False, device='cuda',
+                 learning_rate=1e-4, adam_epsilon=1e-8, warmup_steps=10000, weight_decay=0.01,):
         self.model = model
         self.output_dir = output_dir
         self.grad_norm_clip = grad_norm_clip
         self.writer = SummaryWriter(self.output_dir)
         self.fp16 = fp16
+        self.learning_rate = learning_rate
 
         self.device = device
         if torch.cuda.is_available():

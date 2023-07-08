@@ -14,6 +14,7 @@ class BERT(nn.Module):
                  n_heads: int,
                  n_layers: int,
                  mlm_probability: float = 0.15,
+                 grad_ckpt: bool = False,
                  ):
         super().__init__()
 
@@ -25,7 +26,8 @@ class BERT(nn.Module):
             width=width,
             layers=n_layers,
             heads=n_heads,
-            attn_mask=None
+            attn_mask=None,
+            grad_ckpt=grad_ckpt,
         )
 
         self.token_embedding = nn.Embedding(self.vocab_size, width)
@@ -53,7 +55,7 @@ class BERT(nn.Module):
     def dtype(self):
         return self.token_embedding.weight.dtype
 
-    def embed(self, inputs):  # inputs must be processed by self.process_inputs
+    def embed(self, inputs):
         x = self.token_embedding(inputs).type(self.dtype)  # [batch_size, n_ctx, d_model]
         # logger.debug(f'x.shape: {x.shape}')
         x = x + self.positional_embedding.type(self.dtype)

@@ -12,5 +12,4 @@
 
 module load gcc/11.1.0
 
-python train_molclip.py --config configs/train_molclip.yaml --output_dir results/train_molclip2 
-
+python train_bert.py --config configs/train_aa_bert.yaml --output_dir results/train_aa_bert

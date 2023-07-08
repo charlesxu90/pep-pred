@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --gpus-per-node=4
+#SBATCH --gpus-per-node=2
 #SBATCH --cpus-per-gpu=2
 #SBATCH --mem=64G
 #SBATCH --constraint="a100"

@@ -86,7 +86,7 @@ class BERT(nn.Module):
         
         return input_ids, targets, masked_indices
 
-    def mlm(self, inputs):  # inputs must be processed by self.process_inputs
+    def mlm(self, inputs):
         targets = inputs.clone()
         mask_inputs, targets, masked_indices = self.mask(inputs, targets=targets)  # mlm
 
@@ -99,15 +99,14 @@ class BERT(nn.Module):
         masked_lm_loss = F.cross_entropy(outputs_masked, targets_masked)
         return masked_lm_loss
     
-    def process_inputs(self, inputs):
+    def tokenize_inputs(self, inputs):
         """ remove useless dimension, and fill to the context_length
         """
-        inputs = inputs.squeeze(1)
+        inputs = self.tokenizer.tokenize(inputs)
         inputs = nn.functional.pad(inputs, (0, self.context_length - inputs.shape[1]), value=self.tokenizer.pad_token_id)  # padding inputs length to n_ctx
         return inputs
 
     def forward(self, inputs):
-        inputs = self.process_inputs(inputs)
         masked_lm_loss = self.mlm(inputs)
         return masked_lm_loss
     

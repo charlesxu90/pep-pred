@@ -19,14 +19,14 @@ logger = logging.getLogger(__name__)
 
 class BertTrainer:
 
-    def __init__(self, model, output_dir, grad_norm_clip=1.0, fp16=False):
+    def __init__(self, model, output_dir, grad_norm_clip=1.0, fp16=False, device='cuda'):
         self.model = model
         self.output_dir = output_dir
         self.grad_norm_clip = grad_norm_clip
         self.writer = SummaryWriter(self.output_dir)
         self.fp16 = fp16
 
-        self.device = 'cpu'
+        self.device = device
         if torch.cuda.is_available():
             self.device = torch.cuda.current_device()
             self.model = torch.nn.DataParallel(self.model).to(self.device)
@@ -46,9 +46,8 @@ class BertTrainer:
             losses = []
             pbar = tqdm(enumerate(loader), total=len(loader)) if is_train else enumerate(loader)
             for it, x in pbar:
-                x = x.to(self.device).half() if self.fp16 else x.to(self.device)
-
                 with torch.set_grad_enabled(is_train):
+                    x = model.module.tokenize_inputs(x).to(self.device) if hasattr(model, "module") else model.tokenize_inputs(x).to(self.device)
                     loss = model.forward(x)
                     loss = loss.mean()  # collapse all losses if they are scattered on multiple gpus
                     losses.append(loss.item())

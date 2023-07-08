@@ -11,7 +11,8 @@ from pathlib import Path
 from torch.utils.data import DataLoader
 
 from utils.utils import parse_config, log_GPU_info
-from datasets.smiles_dataset import load_data, CrossDataset, SmilesTokenizer
+from datasets.dataset import load_data, CrossDataset
+from datasets.tokenizer import SmilesTokenizer
 from models.molclip import MolCLIP
 from models.molclip_trainer import CrossTrainer
 
@@ -32,11 +33,9 @@ def main(args, config):
     
     logger.info(f"Create dataset")
     train_data, valid_data = load_data(config.data.input_path, col_name=config.data.col_name,)
-    train_data = CrossDataset(dataset=train_data)
-    valid_data = CrossDataset(dataset=valid_data)
-    train_dataloader = DataLoader(train_data, batch_size=config.data.batch_size, shuffle=True, num_workers=4, 
+    train_dataloader = DataLoader(CrossDataset(train_data), batch_size=config.data.batch_size, shuffle=True, num_workers=4, 
                                   pin_memory=True, persistent_workers=True)
-    test_dataloader = DataLoader(valid_data, batch_size=config.data.batch_size, shuffle=False, num_workers=4, 
+    test_dataloader = DataLoader(CrossDataset(valid_data), batch_size=config.data.batch_size, shuffle=False, num_workers=4, 
                                  pin_memory=True, persistent_workers=True)
 
     logger.info(f"Initialize model")

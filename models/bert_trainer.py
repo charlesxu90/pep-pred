@@ -11,8 +11,8 @@ import numpy as np
 import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
-from utils.utils import save_model
-from utils.utils import time_since
+from utils.utils import save_model, time_since
+from utils.scheduler import CosineAnnealingWarmupRestarts
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class BertTrainer:
 
     def __init__(self, model, output_dir, grad_norm_clip=1.0, fp16=False, device='cuda',
-                 learning_rate=1e-4, adam_epsilon=1e-8, warmup_steps=10000, weight_decay=0.01,):
+                 learning_rate=1e-4, warmup_steps=10000,):
         self.model = model
         self.output_dir = output_dir
         self.grad_norm_clip = grad_norm_clip
@@ -37,7 +37,12 @@ class BertTrainer:
         model = self.model.half() if self.fp16 else self.model 
 
         raw_model = model.module if hasattr(self.model, "module") else model
-        optimizer = raw_model.configure_optimizers()  # TODO: support LR scheduler and warmup
+        optimizer = raw_model.configure_optimizers(self.learning_rate)  # TODO: support LR scheduler and warmup
+        scheduler = CosineAnnealingWarmupRestarts(optimizer, first_cycle_steps=len(train_loader)*n_epochs, 
+                                          max_lr=self.learning_rate,
+                                          min_lr=0.001*self.learning_rate,
+                                          warmup_steps=len(train_loader),
+                                          gamma=0.5)
         start_time = time.time()
 
         def run_epoch(split):
@@ -59,8 +64,9 @@ class BertTrainer:
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
                     optimizer.step()
+                    scheduler.step()
 
-                    pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss.item():.5f}.")
+                    pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss.item():.5f}, lr {scheduler.get_lr()[0]}.")
 
             loss = float(np.mean(losses))
             logger.info(f'{split}, elapsed: {time_since(start_time)}, epoch: {epoch + 1}/{n_epochs}, loss: {loss:.4f}')

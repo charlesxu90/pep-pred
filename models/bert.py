@@ -114,6 +114,5 @@ class BERT(nn.Module):
     
     def configure_optimizers(self, learning_rate=1e-4):
         optimizer = optim.AdamW(params=self.parameters(), lr=learning_rate)
-        # lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, ) # TODO: add LR scheduler
         return optimizer
 

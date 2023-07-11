@@ -12,7 +12,6 @@ from torch.utils.data import DataLoader
 
 from utils.utils import parse_config, log_GPU_info, load_model
 from datasets.dataset import load_data, CrossDataset
-from datasets.tokenizer import SmilesTokenizer
 from models.molclip import MolCLIP
 from models.molclip_trainer import CrossTrainer
 from torch.utils.data.distributed import DistributedSampler
@@ -49,7 +48,7 @@ def main(args, config):
     test_dataloader = DataLoader(test_set, batch_size=config.data.batch_size, sampler=test_sampler, shuffle=False, num_workers=10, pin_memory=True)
 
     logger.info(f"Initialize model")
-    model = MolCLIP(device=device, config=config.model, esm=args.esm)
+    model = MolCLIP(device=device, config=config.model)
     if args.ckpt is not None:
         model = load_model(model, args.ckpt, device)
     

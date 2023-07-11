@@ -75,6 +75,7 @@ class CrossTrainer:
             self.writer.add_scalar('loss', loss, epoch + 1)
 
             return loss
+        # self._save_model(self.output_dir, str(0), 0)  # save model for testing
 
         for epoch in range(n_epochs):
             train_loss = run_epoch('train')

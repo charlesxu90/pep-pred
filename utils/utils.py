@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import yaml
 from easydict import EasyDict
-
+from sklearn.metrics import accuracy_score, recall_score, matthews_corrcoef, roc_auc_score
 
 def time_since(start_time):
     seconds = int(time.time() - start_time)
@@ -63,3 +63,15 @@ def log_GPU_info(logger):
     logger.info(f'Available devices: {torch.cuda.device_count()}')
     logger.info(f'GPU name: {torch.cuda.get_device_name(0)}')
     logger.info(f'GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1024 ** 3} GB')
+
+def get_metrics(y_hat, y_test, print_metrics=True):
+    acc = accuracy_score(y_test, y_hat)
+    sn = recall_score(y_test, y_hat)
+    sp = recall_score(y_test, y_hat, pos_label=0)
+    mcc = matthews_corrcoef(y_test, y_hat)
+    auroc = roc_auc_score(y_test, y_hat)
+    
+    if print_metrics:
+        print(f'Acc(%) \t Sn(%) \t Sp(%) \t MCC \t AUROC')
+        print(f'{acc*100:.2f}\t{sn*100:.2f}\t{sp*100:.2f}\t{mcc:.3f}\t{auroc:.3f}')
+    return acc, sn, sp, mcc, auroc

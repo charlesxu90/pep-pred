@@ -13,24 +13,23 @@ class MolCLIP(nn.Module):
     def __init__(self, 
                  device,
                  config,
-                 esm=False,
                  ):
         super().__init__()
+        self.device = device
+        self.esm = config.esm
+        self.cls_token_embd = config.cls_token_embd
+
         self.temp = nn.Parameter(torch.tensor(1.0)) * config.temp_scale
-        
         self.smi_encoder = BERT(tokenizer=SmilesTokenizer(max_len=config.smi_max_len),**config.smi_bert)
         self.smi_proj = nn.Linear(config.smi_bert.width, config.proj_dim)
 
-        if esm:
+        if self.esm:
             self.aa_encoder, self.aa_tokenizer, self.aa_alphabet = self.load_esm2_model()
             self.aa_proj = nn.Linear(1280, config.proj_dim)
         else:
             self.aa_encoder = BERT(tokenizer=AATokenizer(max_len=config.aa_max_len), **config.aa_bert)
             self.aa_proj = nn.Linear(config.aa_bert.width, config.proj_dim)
-        
-        self.esm = esm
-        self.device = device
-        self.cls_token_embd = config.cls_token_embd
+
     
     @staticmethod
     def load_esm2_model():  # Load ESM-2 model

@@ -15,4 +15,6 @@ model:  # Model params
 train:  # Training params
   max_epochs: 20                  # *total number of epochs
   learning_rate: 0.0004           # *learning rate
-  fp16: True                      # whether to use mixed precision training
+  fp16: true                      # whether to use mixed precision training
+  device: 'cuda'                  # device to use for training
+

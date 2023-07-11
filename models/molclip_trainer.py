@@ -17,21 +17,24 @@ logger = logging.getLogger(__name__)
 
 class CrossTrainer:
 
-    def __init__(self, model: MolCLIP, output_dir, grad_norm_clip=1.0, fp16=False, device='cuda', learning_rate=1e-4,):
-        self.model = model
+    def __init__(self, model: MolCLIP, output_dir, 
+                 fp16=True, device='cuda', learning_rate=1e-4, max_epochs=10,
+                 grad_norm_clip=1.0, ):
         self.output_dir = output_dir
         self.grad_norm_clip = grad_norm_clip
         self.writer = SummaryWriter(self.output_dir)
         self.fp16 = fp16
         self.device = device
         self.learning_rate = learning_rate
+        self.n_epochs = max_epochs
+        self.model = model.to(device)
 
-    def fit(self, train_loader, test_loader=None, n_epochs=10, save_ckpt=True):
+    def fit(self, train_loader, test_loader=None, save_ckpt=True):
         model = self.model
         raw_model = model.module if hasattr(self.model, "module") else model
         optimizer = raw_model.configure_optimizers(self.learning_rate)
         scheduler = CosineAnnealingWarmupRestarts(optimizer, max_lr=self.learning_rate, min_lr=0.001*self.learning_rate,
-                                                    first_cycle_steps=len(train_loader)*n_epochs, warmup_steps=len(train_loader))
+                                                    first_cycle_steps=len(train_loader)*self.n_epochs, warmup_steps=len(train_loader))
         if self.fp16:
             model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
         
@@ -71,13 +74,13 @@ class CrossTrainer:
                     pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss.item():.5f}, lr {scheduler.get_lr()[0]}.")
 
             loss = float(np.mean(losses))
-            logger.info(f'{split}, elapsed: {time_since(start_time)}, epoch: {epoch + 1}/{n_epochs}, loss: {loss:.4f}')
+            logger.info(f'{split}, elapsed: {time_since(start_time)}, epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
             self.writer.add_scalar('loss', loss, epoch + 1)
 
             return loss
         # self._save_model(self.output_dir, str(0), 0)  # save model for testing
 
-        for epoch in range(n_epochs):
+        for epoch in range(self.n_epochs):
             train_loss = run_epoch('train')
             if test_loader is not None:
                 test_loss = run_epoch('test')

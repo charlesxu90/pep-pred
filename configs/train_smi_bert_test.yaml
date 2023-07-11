@@ -3,7 +3,7 @@ data:
   input_path: 'data/moses/'       # pretrain data folder, contain two files: train.csv and val.csv
   col_name: 'SMILES'              # column name of SMILES in csv file
   max_len: 189                    # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
-  batch_size: 320
+  batch_size: 180
 
 model:  # Model params
   context_length: 600             # default 600
@@ -16,3 +16,5 @@ model:  # Model params
 train:  # Training params
   max_epochs: 20                  # *total number of epochs
   learning_rate: 0.00005          # *learning rate
+  fp16: true                      # whether to use mixed precision training
+  device: 'cuda'                  # device to use for training

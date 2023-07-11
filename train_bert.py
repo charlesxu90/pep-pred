@@ -56,8 +56,8 @@ def main(args, config):
         model = load_model(model, args.ckpt, device)
     
     logger.info(f"Start training")
-    trainer = BertTrainer(model, args.output_dir, fp16=config.train.fp16)
-    trainer.fit(train_dataloader, test_dataloader, n_epochs=config.train.max_epochs)
+    trainer = BertTrainer(model, args.output_dir, **config.train)
+    trainer.fit(train_dataloader, test_dataloader)
     logger.info(f"Training finished")
             
 

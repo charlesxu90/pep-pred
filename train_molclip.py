@@ -53,8 +53,8 @@ def main(args, config):
         model = load_model(model, args.ckpt, device)
     
     logger.info(f"Start training")
-    trainer = CrossTrainer(model, args.output_dir)
-    trainer.fit(train_dataloader, test_dataloader, n_epochs=config.train.max_epochs)
+    trainer = CrossTrainer(model, args.output_dir, **config.train)
+    trainer.fit(train_dataloader, test_dataloader)
     logger.info(f"Training finished")
             
 

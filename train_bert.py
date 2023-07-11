@@ -12,11 +12,17 @@ from datasets.dataset import load_data, UniDataset
 from datasets.tokenizer import SmilesTokenizer, AATokenizer
 from models.bert import BERT
 from models.bert_trainer import BertTrainer
+from torch.utils.data.distributed import DistributedSampler
+from utils.dist import init_distributed, get_rank
 
     
-def main(args, config):    
+def main(args, config):
+    # Initialize distributed training
+    init_distributed()
+    global_rank = get_rank()
+
     device = torch.device(args.device)
-    seed = args.seed
+    seed = args.seed + global_rank
     torch.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
@@ -30,10 +36,12 @@ def main(args, config):
     
     logger.info(f"Create dataset")
     train_data, valid_data = load_data(config.data.input_path, col_name=config.data.col_name,)
-    train_dataloader = DataLoader(UniDataset(train_data), batch_size=config.data.batch_size, shuffle=True, num_workers=4, 
-                                  pin_memory=True, persistent_workers=True)
-    test_dataloader = DataLoader(UniDataset(valid_data), batch_size=config.data.batch_size, shuffle=False, num_workers=4, 
-                                 pin_memory=True, persistent_workers=True)
+    train_set, test_set = UniDataset(train_data), UniDataset(valid_data)
+    train_sampler = DistributedSampler(dataset=train_set, shuffle=True, rank=global_rank)
+    train_dataloader = DataLoader(train_set, batch_size=config.data.batch_size, sampler=train_sampler, num_workers=10, pin_memory=True)
+
+    test_sampler = DistributedSampler(dataset=test_set, shuffle=False, rank=global_rank)
+    test_dataloader = DataLoader(test_set, batch_size=config.data.batch_size, sampler=test_sampler, shuffle=False, num_workers=10, pin_memory=True)
 
     logger.info(f"Initialize model")
     if config.data.type == 'smiles':
@@ -48,7 +56,7 @@ def main(args, config):
         model = load_model(model, args.ckpt, device)
     
     logger.info(f"Start training")
-    trainer = BertTrainer(model, args.output_dir)
+    trainer = BertTrainer(model, args.output_dir, fp16=config.train.fp16)
     trainer.fit(train_dataloader, test_dataloader, n_epochs=config.train.max_epochs)
     logger.info(f"Training finished")
             

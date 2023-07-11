@@ -1,9 +1,4 @@
-"""
-Simple training loop; Boilerplate that could apply to any arbitrary neural network,
-so nothing in this file really has anything to do with GPT specifically.
-"""
-
-import math
+import os
 import logging
 import time
 from tqdm import tqdm
@@ -13,6 +8,8 @@ from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from utils.utils import save_model, time_since
 from utils.scheduler import CosineAnnealingWarmupRestarts
+from apex import amp
+from utils.dist import is_dist_avail_and_initialized, is_main_process
 
 logger = logging.getLogger(__name__)
 
@@ -20,35 +17,36 @@ logger = logging.getLogger(__name__)
 class BertTrainer:
 
     def __init__(self, model, output_dir, grad_norm_clip=1.0, fp16=False, device='cuda',
-                 learning_rate=1e-4, warmup_steps=10000,):
+                 learning_rate=1e-4,):
         self.model = model
         self.output_dir = output_dir
         self.grad_norm_clip = grad_norm_clip
         self.writer = SummaryWriter(self.output_dir)
         self.fp16 = fp16
         self.learning_rate = learning_rate
-
         self.device = device
-        if torch.cuda.is_available():
-            self.device = torch.cuda.current_device()
-            self.model = torch.nn.DataParallel(self.model).to(self.device)
     
     def fit(self, train_loader, test_loader=None, n_epochs=10, save_ckpt=True):
-        model = self.model.half() if self.fp16 else self.model 
-
-        raw_model = model.module if hasattr(self.model, "module") else model
-        optimizer = raw_model.configure_optimizers(self.learning_rate)  # TODO: support LR scheduler and warmup
-        scheduler = CosineAnnealingWarmupRestarts(optimizer, first_cycle_steps=len(train_loader)*n_epochs, 
-                                          max_lr=self.learning_rate,
-                                          min_lr=0.001*self.learning_rate,
-                                          warmup_steps=len(train_loader),
-                                          gamma=0.5)
+        model = self.model
+        raw_model = model.module if hasattr(model, "module") else model
+        optimizer = raw_model.configure_optimizers(self.learning_rate)
+        scheduler = CosineAnnealingWarmupRestarts(optimizer, max_lr=self.learning_rate, min_lr=0.001*self.learning_rate,
+                                                  first_cycle_steps=len(train_loader)*n_epochs, warmup_steps=len(train_loader))
+        if self.fp16:
+            model, optimizer = amp.initialize(model, optimizer, opt_level="O1")  # O1 for mixed, O2 for almost fp16, O3 for fp16
+        
+        if torch.cuda.is_available():  # for distributed parallel
+            self.model = nn.SyncBatchNorm.convert_sync_batchnorm(self.model.cuda())
+            local_rank = int(os.environ['LOCAL_RANK'])
+            self.model = nn.parallel.DistributedDataParallel(self.model, device_ids=[local_rank])
+        
         start_time = time.time()
 
         def run_epoch(split):
             is_train = split == 'train'
             model.train(is_train)
             loader = train_loader if is_train else test_loader
+            loader.sampler.set_epoch(epoch)  # for distributed parallel
 
             losses = []
             pbar = tqdm(enumerate(loader), total=len(loader)) if is_train else enumerate(loader)
@@ -61,7 +59,11 @@ class BertTrainer:
 
                 if is_train:
                     model.zero_grad()
-                    loss.backward()
+                    if self.fp16:
+                        with amp.scale_loss(loss, optimizer) as scaled_loss:
+                            scaled_loss.backward()
+                    else:
+                        loss.backward()
                     torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
                     optimizer.step()
                     scheduler.step()
@@ -93,4 +95,5 @@ class BertTrainer:
         """
         base_name = f'model_{info}_{valid_loss:.3f}'
         logger.info(f'Save model {base_name}')
-        save_model(self.model, base_dir, base_name)
+        if not is_dist_avail_and_initialized() or is_main_process():  # for distributed parallel
+            save_model(self.model, base_dir, base_name)

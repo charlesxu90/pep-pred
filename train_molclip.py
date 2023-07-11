@@ -10,16 +10,22 @@ import datetime
 from pathlib import Path
 from torch.utils.data import DataLoader
 
-from utils.utils import parse_config, log_GPU_info
+from utils.utils import parse_config, log_GPU_info, load_model
 from datasets.dataset import load_data, CrossDataset
 from datasets.tokenizer import SmilesTokenizer
 from models.molclip import MolCLIP
 from models.molclip_trainer import CrossTrainer
+from torch.utils.data.distributed import DistributedSampler
+from utils.dist import init_distributed, get_rank
 
     
-def main(args, config):    
+def main(args, config):
+    # Initialize distributed training
+    init_distributed()
+    global_rank = get_rank()
+
     device = torch.device(args.device)
-    seed = args.seed
+    seed = args.seed + global_rank
     torch.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
@@ -33,13 +39,19 @@ def main(args, config):
     
     logger.info(f"Create dataset")
     train_data, valid_data = load_data(config.data.input_path, col_name=config.data.col_name,)
-    train_dataloader = DataLoader(CrossDataset(train_data), batch_size=config.data.batch_size, shuffle=True, num_workers=4, 
-                                  pin_memory=True, persistent_workers=True)
-    test_dataloader = DataLoader(CrossDataset(valid_data), batch_size=config.data.batch_size, shuffle=False, num_workers=4, 
-                                 pin_memory=True, persistent_workers=True)
+    train_set, test_set = CrossDataset(train_data), CrossDataset(valid_data)
+
+
+    train_sampler = DistributedSampler(dataset=train_set, shuffle=True, rank=global_rank)
+    train_dataloader = DataLoader(train_set, batch_size=config.data.batch_size, sampler=train_sampler, num_workers=10, pin_memory=True)
+
+    test_sampler = DistributedSampler(dataset=test_set, shuffle=False, rank=global_rank)
+    test_dataloader = DataLoader(test_set, batch_size=config.data.batch_size, sampler=test_sampler, shuffle=False, num_workers=10, pin_memory=True)
 
     logger.info(f"Initialize model")
     model = MolCLIP(device=device, config=config.model, esm=args.esm)
+    if args.ckpt is not None:
+        model = load_model(model, args.ckpt, device)
     
     logger.info(f"Start training")
     trainer = CrossTrainer(model, args.output_dir)
@@ -55,6 +67,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--esm', action='store_true')
+    parser.add_argument('--ckpt', default=None, type=str, help='path to checkpoint to load')
+
     args = parser.parse_args()
 
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)    

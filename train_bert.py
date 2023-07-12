@@ -14,8 +14,10 @@ from models.bert import BERT
 from models.bert_trainer import BertTrainer
 from torch.utils.data.distributed import DistributedSampler
 from utils.dist import init_distributed, get_rank, is_main_process
+from torch.distributed.elastic.multiprocessing.errors import record
 
-    
+
+@record
 def main(args, config):
     init_distributed()
     global_rank = get_rank()

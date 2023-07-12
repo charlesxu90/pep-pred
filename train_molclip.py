@@ -16,8 +16,10 @@ from models.molclip import MolCLIP
 from models.molclip_trainer import CrossTrainer
 from torch.utils.data.distributed import DistributedSampler
 from utils.dist import init_distributed, get_rank, is_main_process
+from torch.distributed.elastic.multiprocessing.errors import record
 
-    
+
+@record
 def main(args, config):
     init_distributed()
     global_rank = get_rank()

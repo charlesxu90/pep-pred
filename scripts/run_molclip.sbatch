@@ -12,5 +12,5 @@
 
 module load gcc/11.1.0
 
-python train_molclip.py --config configs/train_molclip.yaml --output_dir results/train_molclip2 
+torchrun --nproc_per_node=4 train_molclip.py --config configs/train_molclip.yaml --output_dir results/train_molclip2 
 

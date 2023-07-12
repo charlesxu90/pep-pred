@@ -12,4 +12,4 @@
 
 module load gcc/11.1.0
 
-python train_bert.py --config configs/train_smi_bert.yaml --output_dir results/train_smi_bert
+torchrun --nproc_per_node=4 train_bert.py --config configs/train_smi_bert.yaml --output_dir results/train_smi_bert

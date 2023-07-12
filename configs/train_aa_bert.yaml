@@ -17,4 +17,3 @@ train:  # Training params
   learning_rate: 0.0004             # *learning rate
   device: 'cuda'                    # device to use for training
   use_amp: true                     # whether to use torch.amp for automatic mixed precision training
-  use_apex: false                   # whether to use apex for mixed precision training, faster in BERT

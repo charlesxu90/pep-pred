@@ -55,13 +55,16 @@ class CrossTrainer:
 
                 with torch.set_grad_enabled(is_train):
                     with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
-                        loss = model.forward(x, y)
-                    loss = loss.mean()  # collapse all losses if they are scattered on multiple gpus
-                    losses.append(loss.item())
+                        loss_sac, loss_mlm = model.forward(x, y)
+                    loss_sac = loss_sac.mean()  # collapse all losses if they are scattered on multiple gpus
+                    loss_mlm = loss_mlm.mean()  # to backward with scaler separately
+                    loss = loss_sac.item() + loss_mlm.item()  # for printing only
+                    losses.append(loss)
 
                 if is_train:
                     model.zero_grad()
-                    scaler.scale(loss).backward(retain_graph=True)
+                    scaler.scale(loss_sac).backward(retain_graph=True)
+                    scaler.scale(loss_mlm).backward()
                     scaler.unscale_(optimizer)
                     torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
                     scaler.step(optimizer)
@@ -69,7 +72,7 @@ class CrossTrainer:
                     scheduler.step()
                     optimizer.zero_grad(set_to_none=True)
 
-                    pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss.item():.5f}, lr {scheduler.get_lr()[0]}.")
+                    pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}, lr {scheduler.get_lr()[0]}.")
 
             loss = float(np.mean(losses))
             logger.info(f'{split}, elapsed: {time_since(start_time)}, epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')

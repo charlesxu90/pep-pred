@@ -71,10 +71,7 @@ class MolCLIP(nn.Module):
         #======= Smiles-AA match loss =======#
         # TODO: Implement this later as fusion needed
         # loss_sam = F.cross_entropy(smi_feat, aa_feat.argmax(dim=-1))
-
-        loss = loss_sac + loss_mlm
-
-        return loss
+        return loss_sac, loss_mlm
     
     @torch.no_grad()
     def get_esm_embd(self, aa_seqs):

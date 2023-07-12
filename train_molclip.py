@@ -15,11 +15,10 @@ from datasets.dataset import load_data, CrossDataset
 from models.molclip import MolCLIP
 from models.molclip_trainer import CrossTrainer
 from torch.utils.data.distributed import DistributedSampler
-from utils.dist import init_distributed, get_rank
+from utils.dist import init_distributed, get_rank, is_main_process
 
     
 def main(args, config):
-    # Initialize distributed training
     init_distributed()
     global_rank = get_rank()
 
@@ -33,10 +32,9 @@ def main(args, config):
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(format='%(asctime)s - %(message)s', level=log_level)
     logger = logging.getLogger(__name__)
-
-    log_GPU_info(logger)
+    if is_main_process():
+        log_GPU_info(logger)
     
-    logger.info(f"Create dataset")
     train_data, valid_data = load_data(config.data.input_path, col_name=config.data.col_name,)
     train_set, test_set = CrossDataset(train_data), CrossDataset(valid_data)
 
@@ -47,8 +45,7 @@ def main(args, config):
     test_sampler = DistributedSampler(dataset=test_set, shuffle=False, rank=global_rank)
     test_dataloader = DataLoader(test_set, batch_size=config.data.batch_size, sampler=test_sampler, shuffle=False, num_workers=10, pin_memory=True)
 
-    logger.info(f"Initialize model")
-    model = MolCLIP(device=device, config=config.model)
+    model = MolCLIP(device=device, config=config.model).to(device)
     if args.ckpt is not None:
         model = load_model(model, args.ckpt, device)
     
@@ -65,7 +62,6 @@ if __name__ == '__main__':
     parser.add_argument('--device', default='cuda')
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--debug', action='store_true')
-    parser.add_argument('--esm', action='store_true')
     parser.add_argument('--ckpt', default=None, type=str, help='path to checkpoint to load')
 
     args = parser.parse_args()

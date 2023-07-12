@@ -13,7 +13,8 @@ model:  # Model params
   mlm_probability: 0.15           # masked probability in mlm
 
 train:  # Training params
-  max_epochs: 100                  # *total number of epochs
+  max_epochs: 100                   # *total number of epochs
   learning_rate: 0.0004             # *learning rate
-  fp16: true                      # whether to use mixed precision training
   device: 'cuda'                    # device to use for training
+  use_amp: true                     # whether to use torch.amp for automatic mixed precision training
+  use_apex: false                   # whether to use apex for mixed precision training, faster in BERT

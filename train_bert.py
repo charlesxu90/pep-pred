@@ -13,11 +13,10 @@ from datasets.tokenizer import SmilesTokenizer, AATokenizer
 from models.bert import BERT
 from models.bert_trainer import BertTrainer
 from torch.utils.data.distributed import DistributedSampler
-from utils.dist import init_distributed, get_rank
+from utils.dist import init_distributed, get_rank, is_main_process
 
     
 def main(args, config):
-    # Initialize distributed training
     init_distributed()
     global_rank = get_rank()
 
@@ -27,14 +26,13 @@ def main(args, config):
     np.random.seed(seed)
     random.seed(seed)
 
-    # Initialize logger
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(format='%(asctime)s - %(message)s', level=log_level)
     logger = logging.getLogger(__name__)
     
-    log_GPU_info(logger)
+    if is_main_process():
+        log_GPU_info(logger)
     
-    logger.info(f"Create dataset")
     train_data, valid_data = load_data(config.data.input_path, col_name=config.data.col_name,)
     train_set, test_set = UniDataset(train_data), UniDataset(valid_data)
     train_sampler = DistributedSampler(dataset=train_set, shuffle=True, rank=global_rank)
@@ -43,7 +41,6 @@ def main(args, config):
     test_sampler = DistributedSampler(dataset=test_set, shuffle=False, rank=global_rank)
     test_dataloader = DataLoader(test_set, batch_size=config.data.batch_size, sampler=test_sampler, shuffle=False, num_workers=10, pin_memory=True)
 
-    logger.info(f"Initialize model")
     if config.data.type == 'smiles':
         tokenizer = SmilesTokenizer(max_len=config.data.max_len)
     elif config.data.type == 'aa_seq':

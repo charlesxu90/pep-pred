@@ -8,24 +8,25 @@ from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from utils.utils import save_model, time_since
 from utils.scheduler import CosineAnnealingWarmupRestarts
-from apex import amp
 from utils.dist import is_dist_avail_and_initialized, is_main_process
+from apex import amp
 
 logger = logging.getLogger(__name__)
 
 
 class BertTrainer:
 
-    def __init__(self, model, output_dir, grad_norm_clip=1.0, fp16=False, device='cuda',
-                 learning_rate=1e-4, max_epochs=10):
+    def __init__(self, model, output_dir, grad_norm_clip=1.0, device='cuda',
+                 learning_rate=1e-4, max_epochs=10, use_amp=False, use_apex=True):
         self.model = model
         self.output_dir = output_dir
         self.grad_norm_clip = grad_norm_clip
         self.writer = SummaryWriter(self.output_dir)
-        self.fp16 = fp16
         self.learning_rate = learning_rate
         self.device = device
         self.n_epochs = max_epochs
+        self.use_amp = use_amp
+        self.use_apex = use_apex
     
     def fit(self, train_loader, test_loader=None, save_ckpt=True):
         model = self.model
@@ -33,14 +34,14 @@ class BertTrainer:
         optimizer = raw_model.configure_optimizers(self.learning_rate)
         scheduler = CosineAnnealingWarmupRestarts(optimizer, max_lr=self.learning_rate, min_lr=0.001*self.learning_rate,
                                                   first_cycle_steps=len(train_loader)*self.n_epochs, warmup_steps=len(train_loader))
-        if self.fp16:
-            model, optimizer = amp.initialize(model, optimizer, opt_level="O1")  # O1 for mixed, O2 for almost fp16, O3 for fp16
         
+        model, optimizer = amp.initialize(model, optimizer, opt_level="O1") if self.use_apex else (model, optimizer)
         if torch.cuda.is_available():  # for distributed parallel
             self.model = nn.SyncBatchNorm.convert_sync_batchnorm(self.model.cuda())
             local_rank = int(os.environ['LOCAL_RANK'])
             self.model = nn.parallel.DistributedDataParallel(self.model, device_ids=[local_rank])
-        
+        scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
+
         start_time = time.time()
 
         def run_epoch(split):
@@ -54,20 +55,30 @@ class BertTrainer:
             for it, x in pbar:
                 with torch.set_grad_enabled(is_train):
                     x = model.module.tokenize_inputs(x).to(self.device) if hasattr(model, "module") else model.tokenize_inputs(x).to(self.device)
-                    loss = model.forward(x)
+
+                    if self.use_apex:
+                        loss = model.forward(x)
+                    else:
+                        with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
+                            loss = model.forward(x)
                     loss = loss.mean()  # collapse all losses if they are scattered on multiple gpus
                     losses.append(loss.item())
 
                 if is_train:
                     model.zero_grad()
-                    if self.fp16:
+                    if self.use_apex:
                         with amp.scale_loss(loss, optimizer) as scaled_loss:
                             scaled_loss.backward()
+                        torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
+                        optimizer.step()
                     else:
-                        loss.backward()
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
-                    optimizer.step()
+                        scaler.scale(loss).backward()
+                        scaler.unscale_(optimizer)
+                        torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
+                        scaler.step(optimizer)
+                        scaler.update()
                     scheduler.step()
+                    optimizer.zero_grad(set_to_none=True)
 
                     pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss.item():.5f}, lr {scheduler.get_lr()[0]}.")
 

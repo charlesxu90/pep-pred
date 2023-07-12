@@ -9,7 +9,6 @@ from torch.utils.tensorboard import SummaryWriter
 from utils.utils import save_model, time_since
 from .molclip import MolCLIP
 from utils.scheduler import CosineAnnealingWarmupRestarts
-from apex import amp
 from utils.dist import is_dist_avail_and_initialized, is_main_process
 
 logger = logging.getLogger(__name__)
@@ -18,16 +17,16 @@ logger = logging.getLogger(__name__)
 class CrossTrainer:
 
     def __init__(self, model: MolCLIP, output_dir, 
-                 fp16=True, device='cuda', learning_rate=1e-4, max_epochs=10,
-                 grad_norm_clip=1.0, ):
+                 device='cuda', learning_rate=1e-4, max_epochs=10,
+                 grad_norm_clip=1.0, use_amp=True):
         self.output_dir = output_dir
         self.grad_norm_clip = grad_norm_clip
         self.writer = SummaryWriter(self.output_dir)
-        self.fp16 = fp16
         self.device = device
         self.learning_rate = learning_rate
         self.n_epochs = max_epochs
-        self.model = model.to(device)
+        self.model = model
+        self.use_amp = use_amp
 
     def fit(self, train_loader, test_loader=None, save_ckpt=True):
         model = self.model
@@ -35,13 +34,12 @@ class CrossTrainer:
         optimizer = raw_model.configure_optimizers(self.learning_rate)
         scheduler = CosineAnnealingWarmupRestarts(optimizer, max_lr=self.learning_rate, min_lr=0.001*self.learning_rate,
                                                     first_cycle_steps=len(train_loader)*self.n_epochs, warmup_steps=len(train_loader))
-        if self.fp16:
-            model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
         
         if torch.cuda.is_available():  # for distributed parallel
             self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model.cuda())
             local_rank = int(os.environ['LOCAL_RANK'])
             self.model = torch.nn.parallel.DistributedDataParallel(self.model, device_ids=[local_rank])
+        scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
 
         start_time = time.time()
 
@@ -56,20 +54,20 @@ class CrossTrainer:
             for it, (x, y) in pbar:
 
                 with torch.set_grad_enabled(is_train):
-                    loss = model.forward(x, y)
+                    with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
+                        loss = model.forward(x, y)
                     loss = loss.mean()  # collapse all losses if they are scattered on multiple gpus
                     losses.append(loss.item())
 
                 if is_train:
                     model.zero_grad()
-                    if self.fp16:
-                        with amp.scale_loss(loss, optimizer) as scaled_loss:
-                            scaled_loss.backward()
-                    else:
-                        loss.backward(retain_graph=True)
+                    scaler.scale(loss).backward(retain_graph=True)
+                    scaler.unscale_(optimizer)
                     torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
-                    optimizer.step()
+                    scaler.step(optimizer)
+                    scaler.update()
                     scheduler.step()
+                    optimizer.zero_grad(set_to_none=True)
 
                     pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss.item():.5f}, lr {scheduler.get_lr()[0]}.")
 

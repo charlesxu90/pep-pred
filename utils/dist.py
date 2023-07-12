@@ -1,6 +1,7 @@
 import os
 import torch
 import torch.distributed as dist
+import datetime
 
 def init_distributed():
     dist_url = "env://" # default
@@ -13,7 +14,8 @@ def init_distributed():
             backend="nccl",
             init_method=dist_url,
             world_size=world_size,
-            rank=rank)
+            rank=rank, 
+            timeout=datetime.timedelta(seconds=5400))
     
     torch.cuda.set_device(local_rank)
     dist.barrier()

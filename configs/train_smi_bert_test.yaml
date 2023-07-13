@@ -4,6 +4,7 @@ data:
   col_name: 'SMILES'                # column name of SMILES in csv file
   max_len: 189                      # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
   batch_size: 180                   # *batch size, amp: 180, 29min; apex: 190, 33min.
+  num_workers: 2                    # number of workers for data loading
 
 model:  # Model params
   context_length: 600               # default 600

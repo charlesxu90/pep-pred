@@ -4,6 +4,7 @@ data:
   col_name: 'aa_seq'                  
   max_len: 40                       # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
   batch_size: 1040                  # *batch size, default 1600; distributed 800, 26min; apex: 1000, 13min; amp: 1040, 12min
+  num_workers: 2                    # number of workers for data loading
 
 model:  # Model params
   context_length: 256               # default 600

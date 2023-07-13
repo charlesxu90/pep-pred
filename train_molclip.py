@@ -42,10 +42,10 @@ def main(args, config):
 
 
     train_sampler = DistributedSampler(dataset=train_set, shuffle=True, rank=global_rank)
-    train_dataloader = DataLoader(train_set, batch_size=config.data.batch_size, sampler=train_sampler, num_workers=10, pin_memory=True)
+    train_dataloader = DataLoader(train_set, batch_size=config.data.batch_size, sampler=train_sampler, num_workers=config.data.num_workers, pin_memory=True)
 
     test_sampler = DistributedSampler(dataset=test_set, shuffle=False, rank=global_rank)
-    test_dataloader = DataLoader(test_set, batch_size=config.data.batch_size, sampler=test_sampler, shuffle=False, num_workers=10, pin_memory=True)
+    test_dataloader = DataLoader(test_set, batch_size=config.data.batch_size, sampler=test_sampler, shuffle=False, num_workers=config.data.num_workers, pin_memory=True)
 
     model = MolCLIP(device=device, config=config.model).to(device)
     if args.ckpt is not None:

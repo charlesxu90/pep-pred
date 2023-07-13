@@ -2,7 +2,7 @@ data:
   type: 'smiles'                    # data type, 'smiles' or 'helm' or 'aa_seq'
   input_path: 'data/PeptideAtlas/'         # pretrain data folder, contain two files: train.csv and val.csv
   col_name: 'smi'                # column name of SMILES in csv file
-  max_len: 189                      # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
+  max_len: 600                      # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
   batch_size: 180                   # *batch size, amp: 180, 29min; apex: 190, 33min.
   num_workers: 4                    # number of workers for data loading
 

@@ -1,7 +1,6 @@
 data:
   input_path: 'data/PeptideAtlas/'  # pretrain data folder, contain two files: train.csv and val.csv
   col_name: 'smi,aa_seq'            # column name of SMILES and AA sequence
-  max_len: 600                      # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
   batch_size: 44                    # 2xA100 40GB 4.5h/epoch
   num_workers: 2                    # number of workers for data loading
 
@@ -20,7 +19,7 @@ model:  # Model params
     n_layers: 6
     mlm_probability: 0.15           # masked probability in mlm
   
-  smi_max_len: 189
+  smi_max_len: 600
   aa_max_len: 40
   cls_token_embd: true
   proj_dim: 256

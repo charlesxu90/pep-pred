@@ -7,10 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 def load_data(data_path, col_name='SMILES'):
-    if col_name == 'SMILES' or col_name == 'helm' or col_name == 'aa_seq':
-        col_names = col_name
-    else:
-        col_names = col_name.split(',') # for cross modal dataset
+    col_names = col_name.split(',') # for cross modal dataset
     
     train_data = pd.read_csv(get_path(data_path, 'train.csv'))[col_names].values
     valid_data = pd.read_csv(get_path(data_path, 'test.csv'))[col_names].values
@@ -26,7 +23,7 @@ class UniDataset(Dataset):
         return self.len
 
     def __getitem__(self, idx):
-        item = self.dataset[idx]
+        item = self.dataset[idx][0]
         # logger.debug(f'UniDataset: {item}')
         return item
 

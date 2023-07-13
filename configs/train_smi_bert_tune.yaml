@@ -1,0 +1,20 @@
+data: 
+  type: 'smiles'                    # data type, 'smiles' or 'helm' or 'aa_seq'
+  input_path: 'data/PeptideAtlas/'         # pretrain data folder, contain two files: train.csv and val.csv
+  col_name: 'smi'                # column name of SMILES in csv file
+  max_len: 189                      # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
+  batch_size: 180                   # *batch size, amp: 180, 29min; apex: 190, 33min.
+
+model:  # Model params
+  context_length: 600               # default 600
+  width: 512
+  n_heads: 8
+  n_layers: 6
+  mlm_probability: 0.15             # masked probability in mlm
+  grad_ckpt: false                  # whether to use gradient checkpointing to save memory          # default false
+
+train:  # Training params
+  max_epochs: 20                    # *total number of epochs
+  learning_rate: 0.00005            # *learning rate
+  device: 'cuda'                    # device to use for training
+  use_amp: true                     # whether to use torch.amp for automatic mixed precision training, faster than apex

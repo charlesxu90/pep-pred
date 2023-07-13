@@ -12,4 +12,5 @@
 
 module load gcc/11.1.0
 
-torchrun --nproc_per_node=4 train_bert.py --config configs/train_smi_bert.yaml --output_dir results/train_smi_bert
+# torchrun --nproc_per_node=4 train_bert.py --config configs/train_smi_bert.yaml --output_dir results/train_smi_bert
+torchrun --nproc_per_node=4  train_bert.py --config configs/train_smi_bert_tune.yaml --output_dir results/train_smi_bert_tune --ckpt results/train_smi_bert/model_3_0.277.pt

@@ -41,3 +41,18 @@ class CrossDataset(Dataset):
         [item1, item2] = item
         # logger.debug(f'CrossDataset: {item1}, {item2}')
         return item1, item2
+    
+
+class TaskDataset(Dataset):
+    def __init__(self, dataset):
+        self.dataset = dataset
+
+    def __len__(self):
+        self.len = len(self.dataset)
+        return self.len
+
+    def __getitem__(self, idx):
+        item = self.dataset[idx]
+        [item, prop] = item
+        # logger.debug(f'TaskDataset: {item}, {prop}')
+        return item, prop

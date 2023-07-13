@@ -116,3 +116,26 @@ class BERT(nn.Module):
         optimizer = optim.AdamW(params=self.parameters(), lr=learning_rate)
         return optimizer
 
+
+class BERTPred(nn.Module):
+    def __init__(self, bert_model, device, drop_rate=0.1):
+        super().__init__()
+        self.bert = bert_model
+        self.proj = nn.Sequential(
+            nn.Dropout(drop_rate),
+            nn.Linear(self.bert.transformer.width, self.bert.transformer.width),
+            nn.SiLU(),
+            nn.Linear(self.bert.transformer.width, 1)
+        )
+        self.device = device
+        self.to(self.device)
+
+    def forward(self, inputs):
+        tokens = self.bert.tokenize_inputs(inputs).to(self.device)
+        outputs = self.bert.embed(tokens)
+        logits = outputs[:, 0, :].squeeze()
+        output = self.proj(logits)
+        return output
+
+    def configure_optimizers(self, learning_rate=1e-4):
+        return self.bert.configure_optimizers(learning_rate)

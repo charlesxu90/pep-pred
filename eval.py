@@ -7,31 +7,37 @@ import pandas as pd
 from utils.utils import parse_config, load_model, get_metrics
 from models.bert import BERT
 from models.molclip import MolCLIP
-from datasets.tokenizer import SmilesTokenizer
+from datasets.tokenizer import SmilesTokenizer, AATokenizer
 
-def load_smi_bert_model(ckpt, config, device='cuda'):
-    tokenizer = SmilesTokenizer(max_len=config.data.max_len)
+def load_bert_model(ckpt, config, device='cuda', model_type='smi_bert'):
+    if model_type == 'smi_bert':
+        tokenizer = SmilesTokenizer(max_len=config.data.max_len)
+    elif model_type == 'aa_bert':
+        tokenizer = AATokenizer(max_len=config.data.max_len)
+    else:
+        raise ValueError(f'Invalid model_type: {model_type}')
+
     model = BERT(tokenizer, **config.model)
     model = load_model(model, ckpt, device)
     model.eval()
     return model, device
 
-def get_smi_embd(smi_encoder, smiles, device='cuda', cls_token=False):
-    smi_tokens = smi_encoder.tokenize_inputs(smiles).to(device)
-    batch_lens = (smi_tokens != smi_encoder.tokenizer.pad_token_id).sum(1)
-    smi_embd = smi_encoder.embed(smi_tokens)
+def get_bert_embd(encoder, inputs, device='cuda', cls_token=False):
+    tokens = encoder.tokenize_inputs(inputs).to(device)
+    batch_lens = (tokens != encoder.tokenizer.pad_token_id).sum(1)
+    embd = encoder.embed(tokens)
     if cls_token:
-        return smi_embd[:, 0, :].squeeze()
+        return embd[:, 0, :].squeeze()
     else:
-        smi_reps = []
+        reps = []
         for i, tokens_len in enumerate(batch_lens):
-            smi_reps.append(smi_embd[i, 1 : tokens_len - 1].mean(0))
+            reps.append(embd[i, 1 : tokens_len - 1].mean(0))
         
-        return torch.stack(smi_reps)
+        return torch.stack(reps)
 
-def encode_smi(smi_list, model, device='cuda', cls_token=False):
+def encode_with_bert(list, model, device='cuda', cls_token=False):
     with torch.no_grad():
-        output= get_smi_embd(model, smi_list, device=device, cls_token=cls_token)
+        output= get_bert_embd(model, list, device=device, cls_token=cls_token)
         embd = output.cpu().numpy()
     return embd
 
@@ -92,13 +98,17 @@ def main(args, config):
     y_test = df_test_cpp924.is_cpp.values
 
     if args.model_type == 'smi_bert':
-        model, device = load_smi_bert_model(ckpt=args.ckpt, config=config, device=args.device)
-        X_train = encode_smi(df_train_cpp924.smi, model, device=device, cls_token=args.cls_token_embd)
-        X_test = encode_smi(df_test_cpp924.smi, model, device=device, cls_token=args.cls_token_embd)
+        model, device = load_bert_model(ckpt=args.ckpt, config=config, device=args.device, model_type=args.model_type)
+        X_train = encode_with_bert(df_train_cpp924.smi, model, device=device, cls_token=args.cls_token_embd)
+        X_test = encode_with_bert(df_test_cpp924.smi, model, device=device, cls_token=args.cls_token_embd)
     elif args.model_type == 'molclip':
         model = load_molclip_model(ckpt=args.ckpt, config=config, device=args.device)
         X_train = get_molclip_embd(model, df_train_cpp924.smi, df_train_cpp924.aa_seq)
         X_test = get_molclip_embd(model, df_test_cpp924.smi, df_test_cpp924.aa_seq)
+    elif args.model_type == 'aa_bert':
+        model, device = load_bert_model(ckpt=args.ckpt, config=config, device=args.device, model_type=args.model_type)
+        X_train = encode_with_bert(df_train_cpp924.aa_seq, model, device=device, cls_token=args.cls_token_embd)
+        X_test = encode_with_bert(df_test_cpp924.aa_seq, model, device=device, cls_token=args.cls_token_embd)
 
     logger.debug(f"data shape X_train: {X_train.shape}, y_train: {y_train.shape}, X_test: {X_test.shape}, y_test: {y_test.shape}")
     get_metric_by_clf(X_train, y_train, X_test, y_test, clf=args.clf)

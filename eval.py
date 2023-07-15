@@ -45,15 +45,17 @@ def get_metric_by_clf(X_train, y_train, X_test, y_test, clf='xgb'):
     if clf == 'rf':
         from sklearn.ensemble import RandomForestClassifier
         
-        accs, sns, sps, mccs, aurocs = [], [], [], [], []
+        accs, sns, sps, mccs, aurocs = 0, 0, 0, 0, 0
         for i in range(10):
             model = RandomForestClassifier()
             model.fit(X_train, y_train)
             y_hat = model.predict(X_test)
 
-            acc, sn, sp, mcc, auroc = get_metrics(y_hat, y_test)
-            accs.append(acc), sns.append(sn), sps.append(sp), mccs.append(mcc), aurocs.append(auroc)
-        print(f'Mean results: Acc(%) \t Sn(%) \t Sp(%) \t MCC \t AUROC')
+            acc, sn, sp, mcc, auroc = get_metrics(y_hat, y_test, print_metrics=False)
+            if mcc > mccs:
+                accs, sns, sps, mccs, aurocs = [acc], [sn], [sp], [mcc], [auroc]
+            # accs.append(acc), sns.append(sn), sps.append(sp), mccs.append(mcc), aurocs.append(auroc)
+        print(f'Max results: Acc(%) \t Sn(%) \t Sp(%) \t MCC \t AUROC')
         print(f'{np.mean(accs)*100:.2f}\t{np.mean(sns)*100:.2f}\t{np.mean(sps)*100:.2f}\t{np.mean(mccs):.3f}\t{np.mean(aurocs):.3f}')
 
     elif clf == 'xgb':

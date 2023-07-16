@@ -19,6 +19,10 @@ model:  # Model params
     n_layers: 6
     mlm_probability: 0.15           # masked probability in mlm
   
+  fusion_encoder:
+    n_heads: 8
+    n_layers: 6
+  
   smi_max_len: 600
   aa_max_len: 40
   proj_dim: 256

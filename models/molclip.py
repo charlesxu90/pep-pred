@@ -7,6 +7,7 @@ import logging
 from .base_transformer import LayerNorm, Transformer
 from .bert import BERT
 from datasets.tokenizer import SmilesTokenizer, AATokenizer
+from utils.utils import load_model
 
 logger = logging.getLogger(__name__)
 torch.autograd.set_detect_anomaly(True)
@@ -98,19 +99,19 @@ class MolCLIP(nn.Module):
         # loss = loss_sac + loss_mlm
         # return loss
         #======= Fusion contrastive (FC) loss =======#
-        smi_embd = smi_embd.permute(0, 2, 1)  # BLD -> BDL
-        smi_embd = self.smi_fuse_proj(smi_embd)
-        smi_embd = smi_embd.permute(0, 2, 1)  # BDL -> BLD
+        # smi_embd = smi_embd.permute(0, 2, 1)  # BLD -> BDL
+        # smi_embd = self.smi_fuse_proj(smi_embd)
+        # smi_embd = smi_embd.permute(0, 2, 1)  # BDL -> BLD
 
-        all_embd = torch.cat([smi_embd, aa_embd], dim=-1)
-        all_embd = self.fusion_encoder(all_embd)
-        all_feat = F.normalize(all_embd[:, 0, :], dim=-1)
-        sim_mol = torch.mm(all_feat, all_feat.T) / self.temp
+        # all_embd = torch.cat([smi_embd, aa_embd], dim=-1)
+        # all_embd = self.fusion_encoder(all_embd)
+        # all_feat = F.normalize(all_embd[:, 0, :], dim=-1)
+        # sim_mol = torch.mm(all_feat, all_feat.T) / self.temp
 
-        loss_sam = -torch.sum(F.log_softmax(sim_mol, dim=-1) * targets, dim=-1).mean()
+        # loss_sam = -torch.sum(F.log_softmax(sim_mol, dim=-1) * targets, dim=-1).mean()
         # loss_sam = replace_nan_with_zero(loss_sam)
         
-        loss = loss_sac + loss_mlm + loss_sam
+        loss = loss_sac + loss_mlm  # + loss_sam
         return loss
     
     def _get_embd(self, inputs, input_type='smi'):
@@ -127,3 +128,9 @@ class MolCLIP(nn.Module):
     def configure_optimizers(self, learning_rate=1e-4):
         optimizer = optim.AdamW(params=self.parameters(), lr=learning_rate)
         return optimizer
+    
+    def load_pretrained_encoder(self, smi_ckpt=None, aa_ckpt=None):
+        if smi_ckpt is not None:
+            self.smi_encoder = load_model(self.smi_encoder, smi_ckpt, self.device)
+        if aa_ckpt is not None:
+            self.aa_encoder = load_model(self.aa_encoder, aa_ckpt, self.device)

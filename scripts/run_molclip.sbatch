@@ -12,5 +12,6 @@
 
 module load gcc/11.1.0
 
-torchrun --nproc_per_node=4 train_molclip.py --config configs/train_molclip.yaml --output_dir results/train_molclip 
+# torchrun --nproc_per_node=4 train_molclip.py --config configs/train_molclip.yaml --output_dir results/train_molclip 
 
+torchrun --nproc_per_node=4 train_molclip.py --config configs/train_molclip.yaml --output_dir results/train_molclip2 --debug --smi_ckpt results/train_smi_bert_tune/model_13_0.003.pt --aa_ckpt results/train_aa_bert/model_68_2.269.pt

@@ -40,7 +40,6 @@ def main(args, config):
     train_data, valid_data = load_data(config.data.input_path, col_name=config.data.col_name,)
     train_set, test_set = CrossDataset(train_data), CrossDataset(valid_data)
 
-
     train_sampler = DistributedSampler(dataset=train_set, shuffle=True, rank=global_rank)
     train_dataloader = DataLoader(train_set, batch_size=config.data.batch_size, sampler=train_sampler, num_workers=config.data.num_workers, pin_memory=True)
 
@@ -50,6 +49,10 @@ def main(args, config):
     model = MolCLIP(device=device, config=config.model).to(device)
     if args.ckpt is not None:
         model = load_model(model, args.ckpt, device)
+    if args.smi_ckpt is not None:
+        model.load_pretrained_encoder(smi_ckpt=args.smi_ckpt)
+    if args.aa_ckpt is not None:
+        model.load_pretrained_encoder(aa_ckpt=args.aa_ckpt)
     
     logger.info(f"Start training")
     trainer = CrossTrainer(model, args.output_dir, **config.train)
@@ -65,6 +68,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--ckpt', default=None, type=str, help='path to checkpoint to load')
+    parser.add_argument('--smi_ckpt', default=None, type=str, help='path to smi_bert checkpoint to load')
+    parser.add_argument('--aa_ckpt', default=None, type=str, help='path to aa_bert checkpoint to load')
 
     args = parser.parse_args()
 

@@ -69,10 +69,11 @@ class CrossTrainer:
 
                     # pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}, lr {scheduler.get_lr()[0]}.")
                     pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}.")
+                    self.writer.add_scalar('step_loss', loss, epoch*len(loader) + it + 1)
 
             loss = float(np.mean(losses))
             logger.info(f'{split}, elapsed: {time_since(start_time)}, epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
-            self.writer.add_scalar('loss', loss, epoch + 1)
+            self.writer.add_scalar('epoch_loss', loss, epoch + 1)
 
             return loss
         # self._save_model(self.output_dir, str(0), 0)  # save model for testing

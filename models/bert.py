@@ -133,8 +133,15 @@ class BERTPred(nn.Module):
     def forward(self, inputs):
         tokens = self.bert.tokenize_inputs(inputs).to(self.device)
         outputs = self.bert.embed(tokens)
-        logits = outputs[:, 0, :].squeeze()
-        output = self.proj(logits)
+        # reps = outputs.mean(1)
+
+        batch_lens = (tokens != self.bert.tokenizer.pad_token_id).sum(1)
+        reps = []
+        for i, tokens_len in enumerate(batch_lens):
+            reps.append(outputs[i, 1 : tokens_len - 1].mean(0))
+        
+        reps = torch.stack(reps)
+        output = self.proj(reps)
         return output
 
     def configure_optimizers(self, learning_rate=1e-4):

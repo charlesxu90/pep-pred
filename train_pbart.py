@@ -49,6 +49,8 @@ def main(args, config):
     model = PepBART(device=device, config=config.model).to(device)
     if args.ckpt is not None:
         model = load_model(model, args.ckpt, device)
+    if args.aa_ckpt is not None:
+        model.load_pretrained_encoder(args.aa_ckpt)
     
     logger.info(f"Start training")
     trainer = PBartTrainer(model, args.output_dir, **config.train)
@@ -64,7 +66,6 @@ if __name__ == '__main__':
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--ckpt', default=None, type=str, help='path to checkpoint to load')
-    parser.add_argument('--smi_ckpt', default=None, type=str, help='path to smi_bert checkpoint to load')
     parser.add_argument('--aa_ckpt', default=None, type=str, help='path to aa_bert checkpoint to load')
 
     args = parser.parse_args()

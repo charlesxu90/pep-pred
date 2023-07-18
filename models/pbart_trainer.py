@@ -32,14 +32,15 @@ class PBartTrainer:
         model = self.model
         raw_model = model.module if hasattr(self.model, "module") else model
         optimizer = raw_model.configure_optimizers(self.learning_rate)
-        # scheduler = CosineAnnealingWarmupRestarts(optimizer, max_lr=self.learning_rate, min_lr=0.001*self.learning_rate,
-                                                    # first_cycle_steps=len(train_loader)*self.n_epochs, warmup_steps=len(train_loader))
+        scheduler = CosineAnnealingWarmupRestarts(optimizer, max_lr=self.learning_rate, min_lr=0.001*self.learning_rate,
+                                                    first_cycle_steps=len(train_loader)*self.n_epochs, warmup_steps=len(train_loader))
         
         if torch.cuda.is_available():  # for distributed parallel
             self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model.cuda())
             local_rank = int(os.environ['LOCAL_RANK'])
             self.model = torch.nn.parallel.DistributedDataParallel(self.model, device_ids=[local_rank])
-        
+        scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
+
         start_time = time.time()
 
         def run_epoch(split):
@@ -59,15 +60,19 @@ class PBartTrainer:
                     losses.append(loss.item())
 
                 if is_train:
-                    loss.backward(retain_graph=True)  # without scaler
+                    # loss.backward(retain_graph=True)  # without scaler
+                    scaler.scale(loss).backward()
+                    scaler.unscale_(optimizer)
                     torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
-                    optimizer.step()  # without scaler
-                    # scheduler.step()
+                    # optimizer.step()  # without scaler
+                    scaler.step(optimizer)
+                    scaler.update()
+                    scheduler.step()
                     optimizer.zero_grad(set_to_none=True)
                     loss = loss.item()  # without scaler
 
-                    # pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}, lr {scheduler.get_lr()[0]}.")
-                    pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}.")
+                    pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}, lr {scheduler.get_lr()[0]}.")
+                    # pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}.")
                     self.writer.add_scalar('step_loss', loss, epoch*len(loader) + it + 1)
 
             loss = float(np.mean(losses))

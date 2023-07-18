@@ -18,4 +18,4 @@
 
 #===== Pep BART =====#
 # torchrun --nproc_per_node=2 train_pbart.py --config configs/train_pep_bart_test.yaml --output_dir results/train_pep_bart_test --debug 
-# torchrun --nproc_per_node=2 train_pbart.py --config configs/train_pep_bart_test.yaml --output_dir results/train_pep_bart_test --debug --aa_ckpt results/train_aa_bert/model_68_2.269.pt
+torchrun --nproc_per_node=2 train_pbart.py --config configs/train_pep_bart_test.yaml --output_dir results/train_pep_bart_test --debug --aa_ckpt results/train_aa_bert/model_68_2.269.pt

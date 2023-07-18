@@ -7,6 +7,7 @@ import pandas as pd
 from utils.utils import parse_config, load_model, get_metrics
 from models.bert import BERT
 from models.molclip import MolCLIP
+from models.pbart import PepBART
 from datasets.tokenizer import SmilesTokenizer, AATokenizer
 
 def load_bert_model(ckpt, config, device='cuda', model_type='smi_bert'):
@@ -88,6 +89,29 @@ def get_molclip_embd(model, smiles, aa_seq):
         embd = feat.cpu().numpy()
     return embd
 
+def load_pep_bart_model(ckpt, config, device='cuda'):
+
+    model = PepBART(device=device, config=config.model).to(device)
+    model = load_model(model, ckpt, device)
+    model.eval()
+    return model, device
+
+def get_pep_bart_embd(model, inputs, device='cuda'):
+    tokens = model.aa_encoder.tokenize_inputs(inputs).to(device)
+    embd = model.aa_encoder.embed(tokens)
+    batch_lens = (tokens != model.aa_encoder.tokenizer.pad_token_id).sum(1)
+    reps = []
+    for i, tokens_len in enumerate(batch_lens):
+        reps.append(embd[i, 1 : tokens_len - 1].mean(0))
+    del tokens, batch_lens, embd
+    return torch.stack(reps)
+
+def encode_with_pep_bart(list, model, device='cuda'):
+    with torch.no_grad():
+        output= get_pep_bart_embd(model, list, device=device)
+        embd = output.cpu().numpy()
+    return embd
+
 def main(args, config):
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(format='%(asctime)s - %(message)s', level=log_level)
@@ -111,6 +135,10 @@ def main(args, config):
         model, device = load_bert_model(ckpt=args.ckpt, config=config, device=args.device, model_type=args.model_type)
         X_train = encode_with_bert(df_train_cpp924.aa_seq, model, device=device, cls_token=args.cls_token_embd)
         X_test = encode_with_bert(df_test_cpp924.aa_seq, model, device=device, cls_token=args.cls_token_embd)
+    elif args.model_type == 'pep_bart':
+        model, device = load_pep_bart_model(ckpt=args.ckpt, config=config, device=args.device)
+        X_train = encode_with_pep_bart(df_train_cpp924.aa_seq, model)
+        X_test = encode_with_pep_bart(df_test_cpp924.aa_seq, model)
 
     logger.debug(f"data shape X_train: {X_train.shape}, y_train: {y_train.shape}, X_test: {X_test.shape}, y_test: {y_test.shape}")
     get_metric_by_clf(X_train, y_train, X_test, y_test, clf=args.clf)
@@ -118,7 +146,7 @@ def main(args, config):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_type', default='smi_bert', type=str, help='model type: smi_bert, molclip')
+    parser.add_argument('--model_type', default='smi_bert', type=str, help='model type: smi_bert, molclip, pep_bart')
     parser.add_argument('--ckpt', type=str, help='path to checkpoint to load')
     parser.add_argument('--config', default=None, type=str, help='path to config file')
     parser.add_argument('--device', default='cuda')

@@ -29,3 +29,8 @@
 #     echo $ckpt
 #     python eval.py --ckpt $ckpt --config configs/train_molclip_test.yaml --clf xgb --model_type molclip
 # done
+
+for ckpt in results/train_pep_bart/*.pt; do
+    echo $ckpt
+    python eval.py --ckpt $ckpt --config configs/train_pep_bart.yaml --clf rf --model_type pep_bart
+done

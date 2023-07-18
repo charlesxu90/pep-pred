@@ -34,7 +34,7 @@ class BERT(nn.Module):
         self.positional_embedding = nn.Parameter(torch.empty(self.context_length, width))
         self.ln_final = LayerNorm(width)
         self.mlm_probability = mlm_probability
-        self.decoder = nn.Linear(width, self.vocab_size)  # decodes into vocab_size
+        self.proj = nn.Linear(width, self.vocab_size)  # decodes into vocab_size
 
         self.initialize_parameters()
 
@@ -93,7 +93,7 @@ class BERT(nn.Module):
         mask_inputs, targets, masked_indices = self.mask(inputs, targets=targets)  # mlm
 
         out_embd = self.embed(mask_inputs)
-        outputs = self.decoder(out_embd)
+        outputs = self.proj(out_embd)
 
         targets_masked = targets[masked_indices]
         outputs_masked = outputs[masked_indices].view(-1, self.vocab_size)

@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from utils.utils import parse_config, log_GPU_info, load_model
 from datasets.dataset import load_data, CrossDataset
 from models.pbart import PepBART
-from models.pbart_trainer import PBartTrainer
+from models.trainer import Trainer
 from torch.utils.data.distributed import DistributedSampler
 from utils.dist import init_distributed, get_rank, is_main_process
 from torch.distributed.elastic.multiprocessing.errors import record
@@ -53,7 +53,7 @@ def main(args, config):
         model.load_pretrained_encoder(args.aa_ckpt)
     
     logger.info(f"Start training")
-    trainer = PBartTrainer(model, args.output_dir, **config.train)
+    trainer = Trainer(model, args.output_dir, **config.train)
     trainer.fit(train_dataloader, test_dataloader)
     logger.info(f"Training finished")
 

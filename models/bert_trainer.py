@@ -38,7 +38,6 @@ class BertTrainer:
             self.model = nn.SyncBatchNorm.convert_sync_batchnorm(self.model.cuda())
             local_rank = int(os.environ['LOCAL_RANK'])
             self.model = nn.parallel.DistributedDataParallel(self.model, device_ids=[local_rank])
-        scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
 
         start_time = time.time()
 
@@ -59,20 +58,20 @@ class BertTrainer:
                     losses.append(loss.item())
 
                 if is_train:
-                    model.zero_grad()
-                    scaler.scale(loss).backward()
-                    scaler.unscale_(optimizer)
+                    loss.backward()
                     torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
-                    scaler.step(optimizer)
-                    scaler.update()
+                    optimizer.step()
                     scheduler.step()
                     optimizer.zero_grad(set_to_none=True)
+                    loss = loss.item()
 
-                    pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss.item():.5f}, lr {scheduler.get_lr()[0]}.")
+                    pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}.")
+                    self.writer.add_scalar('step_loss', loss, epoch*len(loader) + it + 1)
+                    self.writer.add_scalar('lr', scheduler.get_lr()[0], epoch*len(loader) + it + 1)
 
             loss = float(np.mean(losses))
             logger.info(f'{split}, elapsed: {time_since(start_time)}, epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
-            self.writer.add_scalar('loss', loss, epoch + 1)
+            self.writer.add_scalar('epoch_loss', loss, epoch + 1)
 
             return loss
 
@@ -124,7 +123,6 @@ class BertPredTrainer:
             self.model = nn.SyncBatchNorm.convert_sync_batchnorm(self.model.cuda())
             local_rank = int(os.environ['LOCAL_RANK'])
             self.model = nn.parallel.DistributedDataParallel(self.model, device_ids=[local_rank])
-        scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
         bce_loss = nn.BCEWithLogitsLoss()
 
 
@@ -149,12 +147,9 @@ class BertPredTrainer:
                     losses.append(loss.item())
 
                 if is_train:
-                    model.zero_grad()
-                    scaler.scale(loss).backward()
-                    scaler.unscale_(optimizer)
+                    loss.backward()
                     torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
-                    scaler.step(optimizer)
-                    scaler.update()
+                    optimizer.step()
                     scheduler.step()
                     optimizer.zero_grad(set_to_none=True)
 

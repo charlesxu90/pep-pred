@@ -7,16 +7,15 @@ import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from utils.utils import save_model, time_since
-from .molclip import MolCLIP
 from utils.scheduler import CosineAnnealingWarmupRestarts
 from utils.dist import is_dist_avail_and_initialized, is_main_process
 
 logger = logging.getLogger(__name__)
 
 
-class PBartTrainer:
+class Trainer:
 
-    def __init__(self, model: MolCLIP, output_dir, 
+    def __init__(self, model, output_dir, 
                  device='cuda', learning_rate=1e-4, max_epochs=10,
                  grad_norm_clip=1.0, use_amp=True):
         self.output_dir = output_dir
@@ -30,16 +29,15 @@ class PBartTrainer:
 
     def fit(self, train_loader, test_loader=None, save_ckpt=True):
         model = self.model
-        raw_model = model.module if hasattr(self.model, "module") else model
+        raw_model = model.module if hasattr(model, "module") else model
         optimizer = raw_model.configure_optimizers(self.learning_rate)
         scheduler = CosineAnnealingWarmupRestarts(optimizer, max_lr=self.learning_rate, min_lr=0.001*self.learning_rate,
-                                                    first_cycle_steps=len(train_loader)*self.n_epochs, warmup_steps=len(train_loader))
+                                                  first_cycle_steps=len(train_loader)*self.n_epochs, warmup_steps=len(train_loader))
         
         if torch.cuda.is_available():  # for distributed parallel
             self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model.cuda())
             local_rank = int(os.environ['LOCAL_RANK'])
             self.model = torch.nn.parallel.DistributedDataParallel(self.model, device_ids=[local_rank])
-        scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
 
         start_time = time.time()
 
@@ -60,20 +58,16 @@ class PBartTrainer:
                     losses.append(loss.item())
 
                 if is_train:
-                    # loss.backward(retain_graph=True)  # without scaler
-                    scaler.scale(loss).backward()
-                    scaler.unscale_(optimizer)
+                    loss.backward(retain_graph=True)
                     torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
-                    # optimizer.step()  # without scaler
-                    scaler.step(optimizer)
-                    scaler.update()
+                    optimizer.step()
                     scheduler.step()
                     optimizer.zero_grad(set_to_none=True)
-                    loss = loss.item()  # without scaler
+                    loss = loss.item()
 
-                    pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}, lr {scheduler.get_lr()[0]}.")
-                    # pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}.")
+                    pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}.")
                     self.writer.add_scalar('step_loss', loss, epoch*len(loader) + it + 1)
+                    self.writer.add_scalar('lr', scheduler.get_lr()[0], epoch*len(loader) + it + 1)
 
             loss = float(np.mean(losses))
             logger.info(f'{split}, elapsed: {time_since(start_time)}, epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')

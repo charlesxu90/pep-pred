@@ -14,8 +14,8 @@
 # torchrun --nproc_per_node=2  finetune_bert.py --config configs/CPP924_finetune_smi_bert.yaml --output_dir results/CPP924_smi_bert --ckpt results/train_smi_bert_tune/model_13_0.003.pt
 
 #===== MolClip =====#
-# torchrun --nproc_per_node=2 train_molclip.py --config configs/train_molclip_test.yaml --output_dir results/train_molclip_test --debug --smi_ckpt results/train_smi_bert_tune/model_13_0.003.pt --aa_ckpt results/train_aa_bert/model_68_2.269.pt
+# torchrun --nproc_per_node=2 train_molclip.py --config configs/train_molclip_test.yaml --output_dir results/train_molclip_test --debug
 
 #===== Pep BART =====#
-# torchrun --nproc_per_node=2 train_pbart.py --config configs/train_pep_bart_test.yaml --output_dir results/train_pep_bart_test --debug 
-torchrun --nproc_per_node=2 train_pbart.py --config configs/train_pep_bart_test.yaml --output_dir results/train_pep_bart_test --debug --aa_ckpt results/train_aa_bert/model_68_2.269.pt
+torchrun --nproc_per_node=2 train_pbart.py --config configs/train_pep_bart_test.yaml --output_dir results/train_pep_bart_test --debug 
+# torchrun --nproc_per_node=2 train_pbart.py --config configs/train_pep_bart_test.yaml --output_dir results/train_pep_bart_test --debug #--aa_ckpt results/train_aa_bert/model_68_2.269.pt

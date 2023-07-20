@@ -1,7 +1,7 @@
 data:
   input_path: 'data/PeptideAtlas/'  # pretrain data folder, contain two files: train.csv and val.csv
   col_name: 'aa_seq,smi'            # column name of SMILES and AA sequence, comma separated
-  batch_size: 140                   # 2xA100 40GB 2h/epoch
+  batch_size: 120                   # 2xA100 40GB 2h/epoch
   num_workers: 2                    # number of workers for data loading
 
 model:  # Model params
@@ -20,6 +20,7 @@ model:  # Model params
   
   smi_max_len: 600
   aa_max_len: 40
+  mlm: true                         # whether to use masked language model for aa_encoder
 
 train:  # Training params
   max_epochs: 5                    # *total number of epochs

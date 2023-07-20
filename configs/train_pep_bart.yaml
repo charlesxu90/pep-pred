@@ -20,6 +20,7 @@ model:  # Model params
   
   smi_max_len: 600
   aa_max_len: 40
+  mlm: true                         # whether to use masked language model for aa_encoder
 
 train:  # Training params
   max_epochs: 25                   # *total number of epochs

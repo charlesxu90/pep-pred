@@ -85,19 +85,23 @@ class PepBART(nn.Module):
         self.device = device
         self.aa_encoder = BERT(tokenizer=AATokenizer(max_len=config.aa_max_len), **config.aa_bert)        
         self.smi_decoder = BARTDecoder(tokenizer=SmilesTokenizer(max_len=config.smi_max_len), **config.smi_decoder)
+        self.mlm = config.mlm
 
     def forward(self, x, y):
         aa_seqs, smiles  = x, y
 
         aa_tokens = self.aa_encoder.tokenize_inputs(aa_seqs).to(self.device)
+        if self.mlm:
+            mlm_loss = self.aa_encoder.mlm(aa_tokens)
+
+        aa_embd = self.aa_encoder.embed(aa_tokens)  # [batch_size, n_ctx, d_model]
         smi_tokens = self.smi_decoder.tokenize_inputs(smiles).to(self.device)
         smi_inputs = smi_tokens[:, :-1]
         smi_target = smi_tokens[:, 1:]
-        
-        aa_embd = self.aa_encoder.embed(aa_tokens)  # [batch_size, n_ctx, d_model]
         smi_pred = self.smi_decoder(smi_inputs, aa_embd)
 
-        loss = F.cross_entropy(smi_pred.view(-1, smi_pred.size(-1)), smi_target.contiguous().view(-1), ignore_index=self.smi_decoder.tokenizer.pad_token_id)
+        lm_loss = F.cross_entropy(smi_pred.view(-1, smi_pred.size(-1)), smi_target.contiguous().view(-1), ignore_index=self.smi_decoder.tokenizer.pad_token_id)
+        loss = mlm_loss + lm_loss if self.mlm else lm_loss
         return loss
 
     def configure_optimizers(self, learning_rate=1e-4):

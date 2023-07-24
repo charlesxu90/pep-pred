@@ -1,14 +1,14 @@
 data: 
   type: 'aa_seq'                    # data type, 'smiles' or 'helm' or 'aa_seq'
-  input_path: 'data/CPP924/'  # pretrain data folder, contain two files: train.csv and val.csv
+  input_path: 'data/CPP924/'        # pretrain data folder, contain two files: train.csv and val.csv
   col_name: 'aa_seq,is_cpp'                  
   max_len: 40                       # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
-  batch_size: 100                   
-  num_workers: 2                    # number of workers for data loading
+  batch_size: 128                   # 10min/epoch
+  num_workers: 0                    # number of workers for data loading
 
 model:  # Model params
-  # model_type: 'siamese'             # 'siamese' or 'bert'
-  model_type: 'bert'             # 'siamese' or 'bert'
+  model_type: 'siamese'             # 'siamese' or 'bert'
+  # model_type: 'bert'             # 'siamese' or 'bert'
   bert:
     context_length: 256               # default 600
     width: 256
@@ -19,6 +19,6 @@ model:  # Model params
 train:  # Training params
   max_epochs: 50                    # *total number of epochs
   learning_rate: 0.0004             # *learning rate
-  device: 'cuda'                    # device to use for training
-  use_amp: true                     # whether to use torch.amp for automatic mixed precision training
-  distributed: true                # whether to use distributed training
+  device: 'cpu'                    # device to use for training
+  use_amp: false                     # whether to use torch.amp for automatic mixed precision training
+  distributed: false                # whether to use distributed training

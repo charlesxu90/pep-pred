@@ -33,7 +33,7 @@ def main(args, config):
     logger = logging.getLogger(__name__)
     
     if is_main_process():
-        log_GPU_info(logger)
+        log_GPU_info()
     
     train_data, valid_data = load_data(config.data.input_path, col_name=config.data.col_name,)
     train_set, test_set = UniDataset(train_data), UniDataset(valid_data)

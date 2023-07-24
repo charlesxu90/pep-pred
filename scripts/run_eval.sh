@@ -2,29 +2,16 @@
 
 # Evaluate by directory
 
-# python eval.py --ckpt results/train_smi_bert/model_3_0.277.pt --config configs/train_smi_bert_tune.yaml --clf xgb
-# for ckpt in results/train_smi_bert/*.pt; do
-#     echo $ckpt
-#     python eval.py --ckpt $ckpt --config configs/train_smi_bert_tune.yaml --clf xgb
-# done
+#=== Evaluate pretrained models ===#
+# python eval_pretrain.py --ckpt_dir results/train_smi_bert/ --config configs/train_smi_bert_tune.yaml --clf xgb
+python eval_pretrain.py --ckpt_dir results/train_smi_bert_tune/ --config configs/train_smi_bert_tune.yaml --clf xgb
 
-# for ckpt in results/train_smi_bert_tune/*.pt; do
-#     echo $ckpt
-#     python eval.py --ckpt $ckpt --config configs/train_smi_bert_tune.yaml --clf xgb
-# done
+# python eval_pretrain.py --ckpt_dir results/train_aa_bert/ --config configs/train_aa_bert_test.yaml --clf rf --model_type aa_bert
+# python eval_pretrain.py --ckpt_dir results/train_molclip/ --config configs/train_molclip_test.yaml --clf xgb --model_type molclip
 
-for ckpt in results/train_aa_bert/*.pt; do
-    echo $ckpt
-    python eval.py --ckpt $ckpt --config configs/train_aa_bert_test.yaml --clf rf --model_type aa_bert
-done
+# python eval_pretrain.py --ckpt_dir results/train_pep_bart1/ --config configs/train_pep_bart_test.yaml --clf rf --model_type pep_bart
+# python eval_pretrain.py --ckpt_dir results/train_pep_bart-bak/ --config configs/train_pep_bart_test.yaml --clf rf --model_type pep_bart
+# python eval_pretrain.py --ckpt_dir results/train_pep_bart_test/ --config configs/train_pep_bart_test.yaml --clf rf --model_type pep_bart
 
-
-# for ckpt in results/train_molclip_test/*.pt; do
-#     echo $ckpt
-#     python eval.py --ckpt $ckpt --config configs/train_molclip_test.yaml --clf xgb --model_type molclip
-# done
-
-# for ckpt in results/train_pep_bart/*.pt; do
-#     echo $ckpt
-#     python eval.py --ckpt $ckpt --config configs/train_pep_bart_test.yaml --clf rf --model_type pep_bart
-# done
+#=== Task-specific evaluation ===#
+# python eval_task_finetune.py --ckpt_dir results/CPP924_aa_bert/ --config configs/CPP924_finetune_aa_bert.yaml

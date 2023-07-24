@@ -1,5 +1,6 @@
 import argparse
 import logging
+import os
 import torch
 import numpy as np
 import pandas as pd
@@ -46,32 +47,35 @@ def get_metric_by_clf(X_train, y_train, X_test, y_test, clf='xgb'):
     if clf == 'rf':
         from sklearn.ensemble import RandomForestClassifier
         
-        accs, sns, sps, mccs, aurocs = 0, 0, 0, 0, 0
+        best_mcc = 0
         for i in range(10):
             model = RandomForestClassifier()
             model.fit(X_train, y_train)
             y_hat = model.predict(X_test)
 
             acc, sn, sp, mcc, auroc = get_metrics(y_hat, y_test, print_metrics=False)
-            if mcc > mccs:
+            if mcc > best_mcc:
                 accs, sns, sps, mccs, aurocs = [acc], [sn], [sp], [mcc], [auroc]
-            # accs.append(acc), sns.append(sn), sps.append(sp), mccs.append(mcc), aurocs.append(auroc)
-        print(f'Max results: Acc(%) \t Sn(%) \t Sp(%) \t MCC \t AUROC')
+                best_mcc = mcc
+        print(f'Best results: Acc(%) \t Sn(%) \t Sp(%) \t MCC \t AUROC')
         print(f'{np.mean(accs)*100:.2f}\t{np.mean(sns)*100:.2f}\t{np.mean(sps)*100:.2f}\t{np.mean(mccs):.3f}\t{np.mean(aurocs):.3f}')
+        return best_mcc
 
     elif clf == 'xgb':
         from xgboost import XGBClassifier
         model = XGBClassifier(eta=0.1, max_depth=6, n_estimators=1000, n_jobs=8, random_state=1)
         model.fit(X_train, y_train)
         y_hat = model.predict(X_test)
-        get_metrics(y_hat, y_test)
+        _, _, _, mcc, _ = get_metrics(y_hat, y_test)
+        return mcc
 
     elif clf == 'svm':
         from sklearn.svm import SVC
         model = SVC(kernel='rbf', C=1, gamma=0.1, random_state=1)
         model.fit(X_train, y_train)
         y_hat = model.predict(X_test)
-        get_metrics(y_hat, y_test)
+        _, _, _, mcc, _ = get_metrics(y_hat, y_test)
+        return mcc
 
 def load_molclip_model(ckpt, config, device='cuda'):
     model = MolCLIP(device=device, config=config.model)
@@ -122,32 +126,40 @@ def main(args, config):
 
     y_train = df_train_cpp924.is_cpp.values
     y_test = df_test_cpp924.is_cpp.values
+    ckpt_files = [f for f in os.listdir(args.ckpt_dir) if f.endswith('.pt')]
+    best_mcc = 0
+    for ckpt in ckpt_files:
+        ckpt = os.path.join(args.ckpt_dir, ckpt)
 
-    if args.model_type == 'smi_bert':
-        model, device = load_bert_model(ckpt=args.ckpt, config=config, device=args.device, model_type=args.model_type)
-        X_train = encode_with_bert(df_train_cpp924.smi, model, device=device, cls_token=args.cls_token_embd)
-        X_test = encode_with_bert(df_test_cpp924.smi, model, device=device, cls_token=args.cls_token_embd)
-    elif args.model_type == 'molclip':
-        model = load_molclip_model(ckpt=args.ckpt, config=config, device=args.device)
-        X_train = get_molclip_embd(model, df_train_cpp924.smi, df_train_cpp924.aa_seq)
-        X_test = get_molclip_embd(model, df_test_cpp924.smi, df_test_cpp924.aa_seq)
-    elif args.model_type == 'aa_bert':
-        model, device = load_bert_model(ckpt=args.ckpt, config=config, device=args.device, model_type=args.model_type)
-        X_train = encode_with_bert(df_train_cpp924.aa_seq, model, device=device, cls_token=args.cls_token_embd)
-        X_test = encode_with_bert(df_test_cpp924.aa_seq, model, device=device, cls_token=args.cls_token_embd)
-    elif args.model_type == 'pep_bart':
-        model, device = load_pep_bart_model(ckpt=args.ckpt, config=config, device=args.device)
-        X_train = encode_with_pep_bart(df_train_cpp924.aa_seq, model)
-        X_test = encode_with_pep_bart(df_test_cpp924.aa_seq, model)
+        if args.model_type == 'smi_bert':
+            model, device = load_bert_model(ckpt=ckpt, config=config, device=args.device, model_type=args.model_type)
+            X_train = encode_with_bert(df_train_cpp924.smi, model, device=device, cls_token=args.cls_token_embd)
+            X_test = encode_with_bert(df_test_cpp924.smi, model, device=device, cls_token=args.cls_token_embd)
+        elif args.model_type == 'molclip':
+            model = load_molclip_model(ckpt=ckpt, config=config, device=args.device)
+            X_train = get_molclip_embd(model, df_train_cpp924.smi, df_train_cpp924.aa_seq)
+            X_test = get_molclip_embd(model, df_test_cpp924.smi, df_test_cpp924.aa_seq)
+        elif args.model_type == 'aa_bert':
+            model, device = load_bert_model(ckpt=ckpt, config=config, device=args.device, model_type=args.model_type)
+            X_train = encode_with_bert(df_train_cpp924.aa_seq, model, device=device, cls_token=args.cls_token_embd)
+            X_test = encode_with_bert(df_test_cpp924.aa_seq, model, device=device, cls_token=args.cls_token_embd)
+        elif args.model_type == 'pep_bart':
+            model, device = load_pep_bart_model(ckpt=ckpt, config=config, device=args.device)
+            X_train = encode_with_pep_bart(df_train_cpp924.aa_seq, model)
+            X_test = encode_with_pep_bart(df_test_cpp924.aa_seq, model)
 
-    logger.debug(f"data shape X_train: {X_train.shape}, y_train: {y_train.shape}, X_test: {X_test.shape}, y_test: {y_test.shape}")
-    get_metric_by_clf(X_train, y_train, X_test, y_test, clf=args.clf)
-        
+        logger.debug(f"data shape X_train: {X_train.shape}, y_train: {y_train.shape}, X_test: {X_test.shape}, y_test: {y_test.shape}")
+        mcc = get_metric_by_clf(X_train, y_train, X_test, y_test, clf=args.clf)
+        if mcc > best_mcc:
+            best_mcc = mcc
+            best_ckpt = ckpt
+            logger.info(f'best_mcc: {best_mcc}, best_ckpt: {best_ckpt}')
+    logger.info(f'best_mcc: {best_mcc}, best_ckpt: {best_ckpt}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_type', default='smi_bert', type=str, help='model type: smi_bert, molclip, pep_bart')
-    parser.add_argument('--ckpt', type=str, help='path to checkpoint to load')
+    parser.add_argument('--ckpt_dir', type=str, help='path to checkpoint directory, containing .pt files')
     parser.add_argument('--config', default=None, type=str, help='path to config file')
     parser.add_argument('--device', default='cuda')
     parser.add_argument('--seed', default=42, type=int)

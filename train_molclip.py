@@ -35,7 +35,7 @@ def main(args, config):
     logging.basicConfig(format='%(asctime)s - %(message)s', level=log_level)
     logger = logging.getLogger(__name__)
     if is_main_process():
-        log_GPU_info(logger)
+        log_GPU_info()
     
     train_data, valid_data = load_data(config.data.input_path, col_name=config.data.col_name,)
     train_set, test_set = CrossDataset(train_data), CrossDataset(valid_data)

@@ -92,7 +92,7 @@ class TaskTrainer:
 
             loss = float(np.mean(losses))
             logger.info(f'{split}, epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
-            self.writer.add_scalar('loss', loss, epoch + 1)
+            self.writer.add_scalar(f'{split}_loss', loss, epoch + 1)
             return loss
 
         for epoch in range(self.n_epochs):

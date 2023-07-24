@@ -4,7 +4,7 @@
 
 #=== Evaluate pretrained models ===#
 # python eval_pretrain.py --ckpt_dir results/train_smi_bert/ --config configs/train_smi_bert_tune.yaml --clf xgb
-python eval_pretrain.py --ckpt_dir results/train_smi_bert_tune/ --config configs/train_smi_bert_tune.yaml --clf xgb
+# python eval_pretrain.py --ckpt_dir results/train_smi_bert_tune/ --config configs/train_smi_bert_tune.yaml --clf xgb
 
 # python eval_pretrain.py --ckpt_dir results/train_aa_bert/ --config configs/train_aa_bert_test.yaml --clf rf --model_type aa_bert
 # python eval_pretrain.py --ckpt_dir results/train_molclip/ --config configs/train_molclip_test.yaml --clf xgb --model_type molclip
@@ -15,3 +15,4 @@ python eval_pretrain.py --ckpt_dir results/train_smi_bert_tune/ --config configs
 
 #=== Task-specific evaluation ===#
 # python eval_task_finetune.py --ckpt_dir results/CPP924_aa_bert/ --config configs/CPP924_finetune_aa_bert.yaml
+python eval_task_finetune.py --ckpt_dir results/CPP924_aa_bert_sia/ --config configs/CPP924_finetune_aa_bert_sia.yaml

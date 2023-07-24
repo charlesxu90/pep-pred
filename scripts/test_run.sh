@@ -1,7 +1,7 @@
 #==== Pretrain ====#
 
 #===== Encoders =====#
-# torchrun --nproc_per_node=2 train_bert.py --config configs/train_aa_bert_test.yaml --output_dir results/train_aa_bert_test --debug
+torchrun --nproc_per_node=2 train_bert.py --config configs/train_aa_bert_test.yaml --output_dir results/train_aa_bert_test --debug
 # torchrun --nproc_per_node=2 train_bert.py --config configs/train_smi_bert_test.yaml --output_dir results/train_smi_bert_test --debug
 
 #==== SMILES BERT finetune ====# Improved
@@ -15,10 +15,13 @@
 # torchrun --nproc_per_node=2 train_pbart.py --config configs/train_pep_bart_test.yaml --output_dir results/train_pep_bart_test --debug #--aa_ckpt results/train_aa_bert/model_68_2.269.pt
 
 #==== task specific finetune ====# Useless
-# AA BERT
-torchrun --nproc_per_node=2 finetune_bert.py --config configs/CPP924_finetune_aa_bert.yaml --output_dir results/CPP924_aa_bert --debug --ckpt results/train_aa_bert/model_12_2.523.pt
-
 # python finetune_bert.py --config configs/CPP924_finetune_aa_bert_cpu.yaml --output_dir results/CPP924_aa_bert --debug --ckpt results/train_aa_bert/model_12_2.523.pt
+
+# AA BERT
+# torchrun --nproc_per_node=2 finetune_bert.py --config configs/CPP924_finetune_aa_bert.yaml --output_dir results/CPP924_aa_bert --debug --ckpt results/train_aa_bert/model_12_2.523.pt
+
+# torchrun --nproc_per_node=2 finetune_bert.py --config configs/CPP924_finetune_aa_bert_sia.yaml --output_dir results/CPP924_aa_bert_sia --debug --ckpt results/train_aa_bert/model_12_2.523.pt
+
 
 # SMILES BERT
 # torchrun --nproc_per_node=2  finetune_bert.py --config configs/CPP924_finetune_smi_bert.yaml --output_dir results/CPP924_smi_bert --ckpt results/train_smi_bert_tune/model_13_0.003.pt

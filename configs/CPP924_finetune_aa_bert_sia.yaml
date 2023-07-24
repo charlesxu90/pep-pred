@@ -7,7 +7,7 @@ data:
   num_workers: 2                    # number of workers for data loading
 
 model:  # Model params
-  model_type: 'bert'             # 'siamese' or 'bert'
+  model_type: 'siamese'             # 'siamese' or 'bert'
   bert:
     context_length: 256               # default 600
     width: 256
@@ -16,7 +16,7 @@ model:  # Model params
     mlm_probability: 0.15             # masked probability in mlm
 
 train:  # Training params
-  max_epochs: 50                    # *total number of epochs
+  max_epochs: 5000                    # *total number of epochs
   learning_rate: 0.0004             # *learning rate
   device: 'cuda'                    # device to use for training
   use_amp: true                     # whether to use torch.amp for automatic mixed precision training

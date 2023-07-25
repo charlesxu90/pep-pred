@@ -1,5 +1,5 @@
 data:
-  input_path: 'data/PeptideAtlas/'  # pretrain data folder, contain two files: train.csv and val.csv
+  input_path: 'data/PeptideAtlas_test/'  # pretrain data folder, contain two files: train.csv and val.csv
   col_name: 'aa_seq,smi'            # column name of SMILES and AA sequence, comma separated
   batch_size: 120                   # 2xA100 40GB 2h/epoch
   num_workers: 2                    # number of workers for data loading

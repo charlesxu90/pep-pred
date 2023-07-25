@@ -101,6 +101,7 @@ class PepBART(nn.Module):
         smi_pred = self.smi_decoder(smi_inputs, aa_embd)
 
         lm_loss = F.cross_entropy(smi_pred.view(-1, smi_pred.size(-1)), smi_target.contiguous().view(-1), ignore_index=self.smi_decoder.tokenizer.pad_token_id)
+        logger.debug(f'mlm_loss: {mlm_loss}, lm_loss: {lm_loss}')
         loss = mlm_loss + lm_loss if self.mlm else lm_loss
         return loss
 

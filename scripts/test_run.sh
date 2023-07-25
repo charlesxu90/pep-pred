@@ -6,7 +6,6 @@
 # torchrun --nproc_per_node=2 train_molclip.py --config configs/train_molclip_test.yaml --output_dir results/train_molclip_test --debug
 
 #Pep BART
-# torchrun --nproc_per_node=2 train_pbart.py --config configs/train_pep_bart_test.yaml --output_dir results/train_pep_bart_test --debug 
 torchrun --nproc_per_node=2 train_pbart.py --config configs/train_pep_bart_test.yaml --output_dir results/train_pep_bart_test --debug --aa_ckpt results/train_aa_bert_L40/model_12_2.523.pt
 
 #==== task specific finetune ====#

@@ -1,19 +1,28 @@
 data: 
-  type: 'aa_seq'                    # data type, 'smiles' or 'helm' or 'aa_seq'
   input_path: 'data/CPP924/'  # pretrain data folder, contain two files: train.csv and val.csv
   col_name: 'aa_seq,is_cpp'                  
   max_len: 40                       # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
-  batch_size: 100                   
+  batch_size: 60                   
   num_workers: 2                    # number of workers for data loading
 
 model:  # Model params
   model_type: 'bert'             # 'siamese' or 'bert'
-  bert:
-    context_length: 256               # default 600
+  aa_bert:
+    context_length: 256             # default 400
     width: 256
     n_heads: 8
     n_layers: 6
-    mlm_probability: 0.15             # masked probability in mlm
+    mlm_probability: 0.15           # masked probability in mlm
+  
+  smi_decoder:
+    context_length: 600             # default 400
+    width: 256
+    n_heads: 8
+    n_layers: 6
+  
+  smi_max_len: 600
+  aa_max_len: 40
+  mlm: true                         # whether to use masked language model for aa_encoder
 
 train:  # Training params
   max_epochs: 50                    # *total number of epochs

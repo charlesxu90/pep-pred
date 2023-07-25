@@ -10,7 +10,10 @@ from torch.utils.data import DataLoader
 from utils.utils import parse_config, load_model, log_GPU_info
 from datasets.dataset import load_data, TaskDataset, cl_collate
 from datasets.tokenizer import SmilesTokenizer, AATokenizer
-from models.bert import BERT, TaskPred
+from models.bert import BERT
+from models.pbart import PepBART
+
+from models.task_model import TaskPred
 from models.task_trainer import TaskTrainer
 from torch.utils.data.distributed import DistributedSampler
 from utils.dist import init_distributed, get_rank, is_main_process
@@ -53,18 +56,18 @@ def main(args, config):
     # logger.debug(f"train_sampler: {len(train_sampler)}, test_sampler: {len(test_sampler)}")
     val_dataloader = DataLoader(test_set, batch_size=batch_size, sampler=test_sampler, shuffle=False, num_workers=num_workers)
 
-    if config.data.type == 'smiles':
-        tokenizer = SmilesTokenizer(max_len=config.data.max_len)
-    elif config.data.type == 'aa_seq':
+    
+    if args.ckpt_model_type == 'bert':
         tokenizer = AATokenizer(max_len=config.data.max_len)
-    else:
-        raise Exception(f"Unknown data type: {config.data.type}")
-    
-    model = BERT(tokenizer=tokenizer, **config.model.bert).to(device)
-    if args.ckpt is not None:
+        model = BERT(tokenizer=tokenizer, **config.model.bert).to(device)
+        if args.ckpt is not None:
+            bert_model = load_model(model, args.ckpt, device)
+    elif args.ckpt_model_type == 'pep_bart':
+        model = PepBART(device=device, config=config.model).to(device)
         model = load_model(model, args.ckpt, device)
-    
-    pred_model = TaskPred(model, model_type=config.model.model_type, device=device)
+        bert_model = model.aa_encoder
+
+    pred_model = TaskPred(bert_model, model_type=config.model.model_type, device=device)
 
     logger.info(f"Start training")
     trainer = TaskTrainer(pred_model, args.output_dir, model_type=config.model.model_type, **config.train)
@@ -74,11 +77,12 @@ def main(args, config):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', default='train_smi_bert.yaml')
-    parser.add_argument('--output_dir', default='checkpoints/pretrain/')
+    parser.add_argument('--config', default='CPP924_finetune_aa_bert.yaml')
+    parser.add_argument('--output_dir', default='results/CPP924_aa_bert/')
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--ckpt', default=None, type=str, help='path to checkpoint to load')
+    parser.add_argument('--ckpt_model_type', default='bert', type=str, help='model type of checkpoint, bert, pep_bart, or molclip')
     args = parser.parse_args()
 
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)    

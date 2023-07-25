@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 
 from utils.utils import parse_config, load_model, get_metrics
-from models.bert import TaskPred, BERT
+from models.bert import BERT
+from models.task_model import TaskPred
 from datasets.tokenizer import SmilesTokenizer, AATokenizer
 
 def load_task_model(ckpt, config, device='cuda', model_type='smi_bert'):

@@ -130,6 +130,7 @@ def main(args, config):
     best_mcc = 0
     for ckpt in ckpt_files:
         ckpt = os.path.join(args.ckpt_dir, ckpt)
+        print(ckpt)
 
         if args.model_type == 'smi_bert':
             model, device = load_bert_model(ckpt=ckpt, config=config, device=args.device, model_type=args.model_type)

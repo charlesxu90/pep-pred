@@ -7,7 +7,6 @@ import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from utils.utils import save_model, time_since, get_metrics, ContrastiveLoss
-from utils.scheduler import CosineAnnealingWarmupRestarts
 from utils.dist import is_dist_avail_and_initialized, is_main_process
 
 

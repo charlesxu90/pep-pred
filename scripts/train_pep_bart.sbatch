@@ -12,4 +12,5 @@
 
 module load gcc/11.1.0
 
-torchrun --nproc_per_node=4 train_pbart.py --config configs/train_pep_bart.yaml --output_dir results/train_pep_bart
+# torchrun --nproc_per_node=4 train_pbart.py --config configs/train_pep_bart.yaml --output_dir results/train_pep_bart
+torchrun --nproc_per_node=4 train_pbart.py --config configs/train_pep_bart.yaml --output_dir results/train_pep_bart_mlm

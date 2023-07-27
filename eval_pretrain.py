@@ -7,7 +7,7 @@ import pandas as pd
 
 from utils.utils import parse_config, load_model, get_metrics
 from models.bert import BERT
-from models.molclip import MolCLIP
+# from models.molclip import MolCLIP
 from models.pbart import PepBART
 from datasets.tokenizer import SmilesTokenizer, AATokenizer
 
@@ -136,10 +136,10 @@ def main(args, config):
             model, device = load_bert_model(ckpt=ckpt, config=config, device=args.device, model_type=args.model_type)
             X_train = encode_with_bert(df_train_cpp924.smi, model, device=device, cls_token=args.cls_token_embd)
             X_test = encode_with_bert(df_test_cpp924.smi, model, device=device, cls_token=args.cls_token_embd)
-        elif args.model_type == 'molclip':
-            model = load_molclip_model(ckpt=ckpt, config=config, device=args.device)
-            X_train = get_molclip_embd(model, df_train_cpp924.smi, df_train_cpp924.aa_seq)
-            X_test = get_molclip_embd(model, df_test_cpp924.smi, df_test_cpp924.aa_seq)
+        # elif args.model_type == 'molclip':
+        #     model = load_molclip_model(ckpt=ckpt, config=config, device=args.device)
+        #     X_train = get_molclip_embd(model, df_train_cpp924.smi, df_train_cpp924.aa_seq)
+        #     X_test = get_molclip_embd(model, df_test_cpp924.smi, df_test_cpp924.aa_seq)
         elif args.model_type == 'aa_bert':
             model, device = load_bert_model(ckpt=ckpt, config=config, device=args.device, model_type=args.model_type)
             X_train = encode_with_bert(df_train_cpp924.aa_seq, model, device=device, cls_token=args.cls_token_embd)

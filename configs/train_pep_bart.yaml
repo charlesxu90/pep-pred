@@ -16,7 +16,7 @@ model:  # Model params
     context_length: 600             # default 400
     width: 256
     n_heads: 8
-    n_layers: 6
+    n_layers: 6    
   
   smi_max_len: 600
   aa_max_len: 40

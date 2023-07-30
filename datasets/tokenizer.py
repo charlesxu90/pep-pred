@@ -128,3 +128,25 @@ class AATokenizer(Tokenizer):
                          'T': 19, 'W': 20, 'Y': 21, 'V': 22, 'X': 23, self.MASK: 24}  # X for unknown AA
         self.idx_char = {v: k for k, v in self.char_idx.items()}
         self.max_len = max_len
+
+
+
+class HELMTokenizer(Tokenizer):
+    """
+    A fixed dictionary for HELM sequences.
+    Enables sequence<->token conversion.
+    With a space:0 for padding, B:1 as the start token, end_of_line \n:2 as the stop token, !:72 as mask.
+    """
+    PAD, BEGIN, END = ' ', '@', '\n'
+
+    def __init__(self, max_len=100) -> None:
+        self.char_idx = {self.PAD: 0, self.BEGIN: 1, self.END: 2, 
+                         'A': 3, 'R': 4, 'N': 5, 'D': 6, 'C': 7, 'E': 8,
+                         'Q': 9, 'G': 10, 'H': 11, 'I': 12, 'L': 13, 'K': 14, 'M': 15, 'F': 16, 'P': 17, 'S': 18,
+                         'T': 19, 'W': 20, 'Y': 21, 'V': 22, 'X': 23, # Natural amino acids
+                         '$': 24,  '(': 25,  ')': 26,  ',': 27,  '-': 28,  '.': 29,  ':': 30,  '[': 31,  ']': 32,  '{': 33,  '|': 34,  '}': 35,  # Common symbols in HELM
+                         '0': 36,  '1': 37,  '2': 38,  '3': 39,  '4': 40,  '5': 41,  '6': 42,  '7': 43,  '8': 44,  '9': 45,  
+                         '>': 46,  'B': 47,  'O': 48,  '_': 49,  'a': 50,  'b': 51,  'c': 52,  'd': 53,  'e': 54,  'f': 55,  'g': 56,  'h': 57,  'i': 58,  'l': 59,  'm': 60,  'n': 61,  'o': 62,  'p': 63,  'r': 64,  's': 65,  't': 66,  'u': 67,  'v': 68,  'x': 69,  'y': 70,  'z': 71,
+                         self.MASK: 72}
+        self.idx_char = {v: k for k, v in self.char_idx.items()}
+        self.max_len = max_len
